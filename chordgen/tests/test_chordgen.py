@@ -135,3 +135,5 @@ def test_gen_sequence():
     for seq in cm.gen_sequence('Cmaj', 3):
         assert len(seq) == 3
         assert seq[0] == 'Cmaj'
+        assert seq[1] in ('Fmaj', 'Gmaj')
+        assert seq[2] in ('Cmaj', 'Cmaj7')
