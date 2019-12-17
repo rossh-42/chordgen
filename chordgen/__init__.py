@@ -14,4 +14,4 @@ from .chordgen import VM  # noqa: F401
 from .chordgen import VM_1  # noqa: F401
 from .chordgen import KeyedChord  # noqa: F401
 from .chordgen import chords_types_are_equal  # noqa: F401
-from .cli import main
+from .cli import main  # noqa: F401
