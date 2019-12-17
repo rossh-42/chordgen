@@ -8,7 +8,6 @@ from chordgen import iiim
 from chordgen import IVM, IVM_1
 from chordgen import VM, VM_1
 from chordgen import vim
-from chordgen import gen_sequence
 from chordgen import chords_types_are_equal
 import musthe
 

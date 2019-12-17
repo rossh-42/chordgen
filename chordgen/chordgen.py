@@ -1,4 +1,3 @@
-import itertools
 from json import JSONEncoder
 import musthe
 import networkx as nx
@@ -216,16 +215,16 @@ class ChordMap(nx.DiGraph):
         for successor in self._g.successors(node):
             if all_variants:
                 for chord in successor.chords:
-                    if self.key:
-                        retval.append(KeyedChord(self.key, chord))
-                    else:
-                        retval.append(chord)
+                    self._append_chord(chord, self.key, retval)
             else:
-                if self.key:
-                    retval.append(KeyedChord(self.key, successor.primary))
-                else:
-                    retval.append(successor.primary)
+                self._append_chord(successor.primary, self.key, retval)
         return retval
+
+    def _append_chord(self, chord, key, chord_list):
+        if key:
+            chord_list.append(KeyedChord(key, chord))
+        else:
+            chord_list.append(chord)
 
     def next_nodes(self, current_node):
         retval = []
