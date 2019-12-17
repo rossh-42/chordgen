@@ -2,7 +2,7 @@ import argparse
 from chordgen import ChordMap
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='Generate a series of chord sequences')
     parser.add_argument('key', type=str, help='key')
     parser.add_argument('start', type=str, help='name of the chord to start from')

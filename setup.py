@@ -19,5 +19,10 @@ setup(
     long_description=get_global("version.py", "__description__"),
     author=get_global("version.py", "__author__"),
     author_email=get_global("version.py", "__author_email__"),
-    packages=find_packages()
+    packages=find_packages(),
+    entry_points={
+        'console_scripts': [
+            'chordgen=chordgen:main',
+        ],
+    },
 )
