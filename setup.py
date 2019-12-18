@@ -6,7 +6,7 @@ def get_global(file_name, global_name):
     """Read global_name from file."""
     import os
     globals = {}
-    exec(open(os.path.join(os.path.dirname(__file__), "chordgen", file_name)).read(), globals)
+    exec(open(os.path.join(os.path.dirname(__file__), "mellowchord", file_name)).read(), globals)
     return globals[global_name]
 
 
@@ -22,7 +22,7 @@ setup(
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'chordgen=chordgen:main',
+            'mellowchord=mellowchord:main',
         ],
     },
 )
