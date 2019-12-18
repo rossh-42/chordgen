@@ -1,9 +1,14 @@
 from json import JSONEncoder
 import musthe
 import networkx as nx
+import re
 
 
 roman_numerals = (None, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII')
+
+
+class ChordParseError(Exception):
+    pass
 
 
 class Chord(object):
@@ -42,6 +47,9 @@ class Chord(object):
     def __repr__(self):
         return self.name()
 
+    def __str__(self):
+        return self.name()
+
     def __hash__(self):
         normalized_chord_type = self.chord_type
         for alias in musthe.Chord.aliases:
@@ -64,12 +72,21 @@ class KeyedChord(musthe.Chord):
         self.chord_type = chord_to_wrap.chord_type
         self.bass = chord_to_wrap.bass
         self.key = key
-        scale = musthe.Scale(key, 'major')
-        self.root_note = scale[self.degree-1]
+        self.scale = musthe.Scale(key, 'major')
+        self.root_note = self.scale[self.degree-1]
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
     def name(self):
-        return musthe.Chord.__str__()
+        name = '{}{}'.format(str(self.root_note), self.chord_type)
+        if self.bass:
+            name += '/{}'.format(str(self.scale[self.bass-1]))
+        return name
+
+    def __str__(self):
+        return self.name()
+
+    def __repr__(self):
+        return self.name()
 
 
 class KeyedChordEncoder(JSONEncoder):
@@ -96,6 +113,62 @@ def chords_types_are_equal(chord_type_1, chord_type_2):
     return False
 
 
+def _split_bass(chord_string, key=None):
+    m = re.search(r'(.*)/(.+)$', chord_string)
+    if m:
+        degree_int = None
+        try:
+            degree_int = int(m.group(2))
+            if degree_int not in range(1,8):
+                raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+        except ValueError:
+            try:
+                n = musthe.Note(m.group(2))
+            except ValueError:
+                raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+            if key is None:
+                raise ChordParseError('Can\'t parse chord string "{}" without a key'.format(chord_string))
+            scale = musthe.Scale(key, 'major')
+            for degree in range(1,9):
+                compare_n = scale[degree-1]
+                if n.letter == compare_n.letter:
+                    degree_int = degree
+                    break
+        assert degree_int
+        return (m.group(1), degree_int)
+    return (chord_string, None)
+
+
+def string_to_chord(chord_string, key=None):
+    (chord_string_minus_bass, bass) = _split_bass(chord_string, key)
+    try:
+        c = musthe.Chord(chord_string_minus_bass)
+        degree = None
+        scale = musthe.Scale(key, 'major')
+        for d in range(7):
+            if scale[d].letter == c.notes[0].letter:
+                degree = d + 1
+                break
+        assert degree
+        return Chord(degree, c.chord_type, bass)
+    except ValueError:
+        pass
+    m = re.search(r'(VII|VI|V|III|II|IV|I|vii|vi|v|iii|ii|iv|i)([^\/]*)($|\/\d)', chord_string)
+    if m is None:
+        raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+    degree_string = m.group(1)
+    chord_type_string = m.group(2)
+    for degree, numeral in enumerate(roman_numerals):
+        if numeral == degree_string.upper():
+            return Chord(degree, chord_type_string, bass)
+    raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+
+
+def string_to_keyed_chord(chord_string, key):
+    c = string_to_chord(chord_string, key)
+    return KeyedChord(key, c)
+
+
 class _ChordGraphNode(object):
     def __init__(self, chords):
         self.chords = chords
@@ -112,17 +185,17 @@ class _ChordGraphNode(object):
         return retval
 
 
-IM = Chord(1, 'M')
-IM_3 = Chord(1, 'M', bass=3)
-IM_5 = Chord(1, 'M', bass=5)
-IM7 = Chord(1, 'M7')
-iim = Chord(2, 'm')
-iiim = Chord(3, 'm')
-IVM = Chord(4, 'M')
-IVM_1 = Chord(4, 'M', bass=1)
-VM = Chord(5, 'M')
-VM_1 = Chord(5, 'M', bass=1)
-vim = Chord(6, 'm')
+IM = Chord(1, 'maj')
+IM_3 = Chord(1, 'maj', bass=3)
+IM_5 = Chord(1, 'maj', bass=5)
+IM7 = Chord(1, 'maj7')
+iim = Chord(2, 'min')
+iiim = Chord(3, 'min')
+IVM = Chord(4, 'maj')
+IVM_1 = Chord(4, 'maj', bass=1)
+VM = Chord(5, 'maj')
+VM_1 = Chord(5, 'maj', bass=1)
+vim = Chord(6, 'min')
 
 
 class ChordMap(nx.DiGraph):
@@ -196,15 +269,7 @@ class ChordMap(nx.DiGraph):
         retval = []
         if isinstance(current_chord, str):
             assert self.key
-            c = musthe.Chord(current_chord)
-            scale = musthe.Scale(self.key, 'major')
-            degree = None
-            for d in range(7):
-                if scale[d] == c.notes[0]:
-                    degree = d + 1
-                    break
-            assert degree
-            current_chord = Chord(degree, c.chord_type)
+            current_chord = string_to_chord(current_chord, self.key)
         elif isinstance(current_chord, Chord):
             pass
         elif isinstance(current_chord, KeyedChord):
