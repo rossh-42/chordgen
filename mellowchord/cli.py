@@ -1,5 +1,5 @@
 import argparse
-from chordgen import ChordMap
+from mellowchord import ChordMap
 
 
 def main():

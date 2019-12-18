@@ -1,18 +1,18 @@
-from chordgen import _split_bass
-from chordgen import string_to_chord
-from chordgen import string_to_keyed_chord
-from chordgen import _ChordGraphNode
-from chordgen import Chord
-from chordgen import ChordMap
-from chordgen import ChordParseError
-from chordgen import KeyedChord
-from chordgen import IM, IM_3, IM_5, IM7
-from chordgen import iim
-from chordgen import iiim
-from chordgen import IVM, IVM_1
-from chordgen import VM, VM_1
-from chordgen import vim
-from chordgen import chords_types_are_equal
+from mellowchord import _split_bass
+from mellowchord import string_to_chord
+from mellowchord import string_to_keyed_chord
+from mellowchord import _ChordGraphNode
+from mellowchord import Chord
+from mellowchord import ChordMap
+from mellowchord import ChordParseError
+from mellowchord import KeyedChord
+from mellowchord import IM, IM_3, IM_5, IM7
+from mellowchord import iim
+from mellowchord import iiim
+from mellowchord import IVM, IVM_1
+from mellowchord import VM, VM_1
+from mellowchord import vim
+from mellowchord import chords_types_are_equal
 import musthe
 import pytest
 
