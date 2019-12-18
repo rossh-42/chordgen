@@ -119,7 +119,7 @@ def _split_bass(chord_string, key=None):
         degree_int = None
         try:
             degree_int = int(m.group(2))
-            if degree_int not in range(1,8):
+            if degree_int not in range(1, 8):
                 raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
         except ValueError:
             try:
@@ -129,7 +129,7 @@ def _split_bass(chord_string, key=None):
             if key is None:
                 raise ChordParseError('Can\'t parse chord string "{}" without a key'.format(chord_string))
             scale = musthe.Scale(key, 'major')
-            for degree in range(1,9):
+            for degree in range(1, 9):
                 compare_n = scale[degree-1]
                 if n.letter == compare_n.letter:
                     degree_int = degree

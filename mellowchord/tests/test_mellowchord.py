@@ -12,7 +12,6 @@ from mellowchord import iiim
 from mellowchord import IVM, IVM_1
 from mellowchord import VM, VM_1
 from mellowchord import vim
-from mellowchord import chords_types_are_equal
 import musthe
 import pytest
 
