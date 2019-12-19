@@ -18,4 +18,5 @@ from .mellowchord import VM_1  # noqa: F401
 from .mellowchord import KeyedChord  # noqa: F401
 from .mellowchord import chords_types_are_equal  # noqa: F401
 from .mellowchord import ChordParseError  # noqa: F401
+from .mellowchord import MidiFile  # noqa: F401
 from .cli import main  # noqa: F401
