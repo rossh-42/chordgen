@@ -66,6 +66,7 @@ def test_keyed_chord():
     assert kc.notes[0] == musthe.Note('C')
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
+    kc.midi_messages()
 
 
 def test_map():

@@ -1,4 +1,5 @@
 from json import JSONEncoder
+import mido
 import musthe
 import networkx as nx
 import re
@@ -87,6 +88,9 @@ class KeyedChord(musthe.Chord):
 
     def __repr__(self):
         return self.name()
+
+    def midi_messages(self):
+        return [mido.Message('note_on', note=note.midi_note()) for note in self.notes]
 
 
 class KeyedChordEncoder(JSONEncoder):
