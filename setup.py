@@ -13,7 +13,8 @@ def get_global(file_name, global_name):
 setup(
     name=get_global("version.py", "__title__"),
     version=get_global("version.py", "__version__"),
-    install_requires=['musthe',
+    install_requires=['mido',
+                      'musthe',
                       'networkx'],
     description=get_global("version.py", "__description__"),
     long_description=get_global("version.py", "__description__"),
