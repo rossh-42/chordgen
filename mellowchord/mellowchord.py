@@ -89,8 +89,89 @@ class KeyedChord(musthe.Chord):
     def __repr__(self):
         return self.name()
 
-    def midi_messages(self):
-        return [mido.Message('note_on', note=note.midi_note()) for note in self.notes]
+    def midi_messages(self, velocity=64, time=500):
+        return [mido.Message('note_on',
+                             note=note.midi_note(),
+                             velocity=velocity,
+                             time=time) for note in self.notes]
+
+    def add_to_midi_file(self, midi_file, velocity=100, time=1000):
+        if self.bass:
+            bass_note = self.scale[self.bass]
+        else:
+            bass_note = self.notes[0]
+        bass_note = bass_note.to_octave(2)
+        midi_file._tracks['bass'].append(mido.Message('note_on',
+                                                      note=bass_note.midi_note(),
+                                                      velocity=velocity,
+                                                      time=time))
+        midi_file._tracks['bass'].append(mido.Message('note_off',
+                                                      note=bass_note.midi_note(),
+                                                      velocity=velocity,
+                                                      time=5))
+
+        midi_file._tracks['root'].append(mido.Message('note_on',
+                                                      note=self.notes[0].midi_note(),
+                                                      velocity=velocity,
+                                                      time=time))
+        midi_file._tracks['root'].append(mido.Message('note_off',
+                                                      note=self.notes[0].midi_note(),
+                                                      velocity=velocity,
+                                                      time=5))
+
+        midi_file._tracks['third'].append(mido.Message('note_on',
+                                                       note=self.notes[1].midi_note(),
+                                                       velocity=velocity,
+                                                       time=time))
+        midi_file._tracks['third'].append(mido.Message('note_off',
+                                                       note=self.notes[1].midi_note(),
+                                                       velocity=velocity,
+                                                       time=5))
+
+        midi_file._tracks['fifth'].append(mido.Message('note_on',
+                                                       note=self.notes[2].midi_note(),
+                                                       velocity=velocity,
+                                                       time=time))
+        midi_file._tracks['fifth'].append(mido.Message('note_off',
+                                                       note=self.notes[2].midi_note(),
+                                                       velocity=velocity,
+                                                       time=5))
+
+        if len(self.notes) >= 4:
+            midi_file._tracks['seventh'].append(mido.Message('note_on',
+                                                             note=self.notes[3].midi_note(),
+                                                             velocity=velocity,
+                                                             time=time))
+            midi_file._tracks['seventh'].append(mido.Message('note_off',
+                                                             note=self.notes[3].midi_note(),
+                                                             velocity=velocity,
+                                                             time=5))
+        else:
+            midi_file._tracks['seventh'].append(mido.Message('note_off',
+                                                             note=0,
+                                                             velocity=velocity,
+                                                             time=time+5))
+
+
+class MidiFile(object):
+    def __init__(self, filename):
+        self._midi_file = mido.MidiFile()
+        self._filename = filename
+        self._tracks = {}
+        for track_name in ('bass', 'root', 'third', 'fifth', 'seventh'):
+            track = mido.MidiTrack()
+            track.name = track_name
+            self._tracks[track_name] = track
+            track.append(mido.Message('program_change', program=0, time=0))
+            track.append(mido.Message('note_on', note=0, velocity=0, time=500))
+            track.append(mido.Message('note_off', note=0, velocity=0, time=500))
+
+    def write(self):
+        for track_name in ('bass', 'root', 'third', 'fifth', 'seventh'):
+            self._tracks[track_name].append(mido.Message('note_on', note=0, velocity=0, time=500))
+            self._tracks[track_name].append(mido.Message('note_off', note=0, velocity=0, time=500))
+            self._midi_file.tracks.append(self._tracks[track_name])
+        self._midi_file.save(self._filename)
 
 
 class KeyedChordEncoder(JSONEncoder):

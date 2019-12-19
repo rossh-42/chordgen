@@ -12,6 +12,7 @@ from mellowchord import iiim
 from mellowchord import IVM, IVM_1
 from mellowchord import VM, VM_1
 from mellowchord import vim
+from mellowchord import MidiFile
 import musthe
 import pytest
 
@@ -66,7 +67,17 @@ def test_keyed_chord():
     assert kc.notes[0] == musthe.Note('C')
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
-    kc.midi_messages()
+
+
+def test_keyed_chord_midi():
+    midi_file = MidiFile('test.mid')
+    kc1 = KeyedChord('C', Chord(1, 'maj'))
+    kc1.add_to_midi_file(midi_file)
+    kc4 = KeyedChord('C', Chord(4, 'maj'))
+    kc4.add_to_midi_file(midi_file)
+    kc5 = KeyedChord('C', Chord(5, 'maj'))
+    kc5.add_to_midi_file(midi_file)
+    midi_file.write()
 
 
 def test_map():
