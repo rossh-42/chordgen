@@ -13,6 +13,10 @@ from mellowchord import IVM, IVM_1
 from mellowchord import VM, VM_1
 from mellowchord import vim
 from mellowchord import MidiFile
+from mellowchord import make_file_name_from_chord_sequence
+from mellowchord import validate_key
+from mellowchord import validate_start
+from mellowchord import MellowchordError
 import musthe
 import pytest
 
@@ -72,12 +76,36 @@ def test_keyed_chord():
 def test_keyed_chord_midi():
     midi_file = MidiFile('test.mid')
     kc1 = KeyedChord('C', Chord(1, 'maj'))
-    kc1.add_to_midi_file(midi_file)
+    midi_file.add_chord(kc1)
     kc4 = KeyedChord('C', Chord(4, 'maj'))
-    kc4.add_to_midi_file(midi_file)
+    midi_file.add_chord(kc4)
     kc5 = KeyedChord('C', Chord(5, 'maj'))
-    kc5.add_to_midi_file(midi_file)
+    midi_file.add_chord(kc5)
     midi_file.write()
+
+
+def test_make_file_name_from_chord_sequence():
+    kc1 = KeyedChord('C', Chord(1, 'maj'))
+    kc4 = KeyedChord('C', Chord(4, 'maj'))
+    kc5 = KeyedChord('C', Chord(5, 'maj'))
+    assert make_file_name_from_chord_sequence([kc1, kc4, kc5]) == 'Cmaj_Fmaj_Gmaj'
+
+
+def test_validate_key():
+    validate_key('C')
+    validate_key('D#')
+    validate_key('Bb')
+    with pytest.raises(MellowchordError):
+        validate_key('foo')
+
+
+def test_validate_start():
+    cm = ChordMap('C')
+    validate_start('Cmaj', cm)
+    with pytest.raises(MellowchordError):
+        validate_start('Dmaj', cm)
+    with pytest.raises(MellowchordError):
+        validate_start('foo', cm)
 
 
 def test_map():
@@ -149,9 +177,9 @@ def test_gen_sequence():
     cm = ChordMap('C')
     for seq in cm.gen_sequence('Cmaj', 3):
         assert len(seq) == 3
-        assert seq[0] == 'Cmaj'
-        assert seq[1] in ('Fmaj/C', 'Gmaj/C')
-        assert seq[2] in ('Cmaj', 'Cmaj7')
+        assert str(seq[0]) == 'Cmaj'
+        assert str(seq[1]) in ('Fmaj/C', 'Gmaj/C')
+        assert str(seq[2]) in ('Cmaj', 'Cmaj7')
 
 
 def test_split_bass():
