@@ -13,7 +13,6 @@ from mellowchord import IVM, IVM_1
 from mellowchord import VM, VM_1
 from mellowchord import vim
 from mellowchord import MidiFile
-from mellowchord import make_file_name_from_chord_sequence
 import musthe
 import pytest
 
@@ -79,13 +78,6 @@ def test_keyed_chord_midi():
     kc5 = KeyedChord('C', Chord(5, 'maj'))
     midi_file.add_chord(kc5)
     midi_file.write()
-
-
-def test_make_file_name_from_chord_sequence():
-    kc1 = KeyedChord('C', Chord(1, 'maj'))
-    kc4 = KeyedChord('C', Chord(4, 'maj'))
-    kc5 = KeyedChord('C', Chord(5, 'maj'))
-    assert make_file_name_from_chord_sequence([kc1, kc4, kc5]) == 'Cmaj_Fmaj_Gmaj'
 
 
 def test_map():
