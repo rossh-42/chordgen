@@ -11,6 +11,8 @@ def main():
     chordgen_parser.add_argument('key', type=str, help='key (all keys are major)')
     chordgen_parser.add_argument('start', type=str, help='name of the chord to start from')
     chordgen_parser.add_argument('num', type=int, help='number of chords in each sequence')
+    chordgen_parser.add_argument('output', type=str, choices=['f', 'm', 'b'],
+                                 help='output type (f=file, m=midi, b=both)')
 
     melodygen_parser = subparsers.add_parser('melodygen',
                                              aliases=['m'],
@@ -19,8 +21,8 @@ def main():
     args = parser.parse_args()
     try:
         if args.command in ('chordgen', 'c'):
-            chordgen(args.key, args.start, args.num)
+            chordgen(args.key, args.start, args.num, args.output)
         elif args.command in ('melodygen', 'm'):
-            print('not implemented!')
+            raise MellowchordError('not implemented!')
     except MellowchordError as e:
         print(e)
