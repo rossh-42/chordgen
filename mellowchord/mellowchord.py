@@ -1,8 +1,10 @@
+import copy
 from json import JSONEncoder
 import mido
 import musthe
 import networkx as nx
 import re
+import time
 
 
 roman_numerals = (None, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII')
@@ -100,9 +102,9 @@ class KeyedChord(musthe.Chord):
 
 class MidiFile(object):
     BUFFER_TIME = 500
+    ALL_SOUNDS_OFF = mido.Message('control_change', control=120, value=0, time=BUFFER_TIME)
 
     def __init__(self, filename, program=0):
-        self._midi_file = mido.MidiFile()
         self._filename = filename
         self._tracks = {}
         for track_name in ('bass', 'root', 'third', 'fifth', 'seventh'):
@@ -110,19 +112,19 @@ class MidiFile(object):
             track.name = track_name
             self._tracks[track_name] = track
             track.append(mido.Message('program_change', program=program, time=0))
-            track.append(mido.Message('control_change', control=120, value=0, time=MidiFile.BUFFER_TIME))
+            track.append(MidiFile.ALL_SOUNDS_OFF)
 
     def _add_track_note(self, track_name, note, velocity, on_time, off_time):
         self._tracks[track_name].append(mido.Message('note_on',
                                                      note=note,
                                                      velocity=velocity,
-                                                     time=on_time))
+                                                     time=off_time))
         self._tracks[track_name].append(mido.Message('note_off',
                                                      note=note,
                                                      velocity=velocity,
-                                                     time=off_time))
+                                                     time=on_time))
 
-    def add_chord(self, keyed_chord, velocity=127, time=1000):
+    def add_chord(self, keyed_chord, velocity=64, time=1000):
         if keyed_chord.bass:
             bass_note = keyed_chord.scale[keyed_chord.bass]
         else:
@@ -142,11 +144,27 @@ class MidiFile(object):
                                                         velocity=velocity,
                                                         time=time+5))
 
-    def write(self):
+    def _make_midi_file(self):
+        midi_file = mido.MidiFile()
+        tracks_copy = copy.copy(self._tracks)
         for track_name in ('bass', 'root', 'third', 'fifth', 'seventh'):
-            self._tracks[track_name].append(mido.Message('control_change', control=120, value=0, time=MidiFile.BUFFER_TIME))
-            self._midi_file.tracks.append(self._tracks[track_name])
-        self._midi_file.save(self._filename)
+            self._tracks[track_name].append(MidiFile.ALL_SOUNDS_OFF)
+            midi_file.tracks.append(tracks_copy[track_name])
+        return midi_file
+
+    def write(self):
+        midi_file = self._make_midi_file()
+        midi_file.save(self._filename)
+
+    def play(self, portname=None, raise_exceptions=False):
+        midi_file = self._make_midi_file()
+        try:
+            with mido.open_output(portname=portname, autoreset=True) as port:
+                for msg in midi_file.play():
+                    port.send(msg)
+        except IOError as e:
+            if raise_exceptions:
+                raise MellowchordError(str(e))
 
 
 class KeyedChordEncoder(JSONEncoder):
@@ -256,16 +274,20 @@ def validate_start(start, chord_map):
         raise InvalidArgumentError('Chord ({}) not found in map for this key ({})'.format(start, chord_map.key))
 
 
-def chordgen(key, start, num):
+def chordgen(key, start, num, output):
     validate_key(key)
     cm = ChordMap(key)
     validate_start(start, cm)
     for seq in cm.gen_sequence(start, num):
+        print(make_file_name_from_chord_sequence(seq))
         filename = make_file_name_from_chord_sequence(seq) + '.mid'
         midi_file = MidiFile(filename)
         for keyed_chord in seq:
             midi_file.add_chord(keyed_chord)
-        midi_file.write()
+        if output in ('f', 'b'):
+            midi_file.write()
+        if output in ('m', 'b'):
+            midi_file.play(raise_exceptions=True)
 
 
 class _ChordGraphNode(object):
