@@ -16,7 +16,6 @@ setup(
     install_requires=['mido',
                       'musthe',
                       'networkx',
-                      'python-rtmidi',
                       'readchar'],
     description=get_global("version.py", "__description__"),
     long_description=get_global("version.py", "__description__"),
