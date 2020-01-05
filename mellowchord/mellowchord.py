@@ -274,22 +274,6 @@ def validate_start(start, chord_map):
         raise InvalidArgumentError('Chord ({}) not found in map for this key ({})'.format(start, chord_map.key))
 
 
-def chordgen(key, start, num, output):
-    validate_key(key)
-    cm = ChordMap(key)
-    validate_start(start, cm)
-    for seq in cm.gen_sequence(start, num):
-        print(make_file_name_from_chord_sequence(seq))
-        filename = make_file_name_from_chord_sequence(seq) + '.mid'
-        midi_file = MidiFile(filename)
-        for keyed_chord in seq:
-            midi_file.add_chord(keyed_chord)
-        if output in ('f', 'b'):
-            midi_file.write()
-        if output in ('m', 'b'):
-            midi_file.play(raise_exceptions=True)
-
-
 class _ChordGraphNode(object):
     def __init__(self, chords):
         self.chords = chords

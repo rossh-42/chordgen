@@ -1,6 +1,10 @@
 import argparse
-from mellowchord import chordgen
+from mellowchord import ChordMap
+from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import MellowchordError
+from mellowchord import MidiFile
+from mellowchord import validate_key
+from mellowchord import validate_start
 
 
 def main():
@@ -26,3 +30,19 @@ def main():
             raise MellowchordError('not implemented!')
     except MellowchordError as e:
         print(e)
+
+
+def chordgen(key, start, num, output):
+    validate_key(key)
+    cm = ChordMap(key)
+    validate_start(start, cm)
+    for seq in cm.gen_sequence(start, num):
+        print(make_file_name_from_chord_sequence(seq))
+        filename = make_file_name_from_chord_sequence(seq) + '.mid'
+        midi_file = MidiFile(filename)
+        for keyed_chord in seq:
+            midi_file.add_chord(keyed_chord)
+        if output in ('f', 'b'):
+            midi_file.write()
+        if output in ('m', 'b'):
+            midi_file.play(raise_exceptions=True)
