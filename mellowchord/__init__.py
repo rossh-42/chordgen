@@ -20,7 +20,6 @@ from .mellowchord import chords_types_are_equal  # noqa: F401
 from .mellowchord import ChordParseError  # noqa: F401
 from .mellowchord import MidiFile  # noqa: F401
 from .mellowchord import make_file_name_from_chord_sequence  # noqa: F401
-from .mellowchord import chordgen  # noqa: F401
 from .mellowchord import validate_key  # noqa: F401
 from .mellowchord import validate_start  # noqa: F401
 from .mellowchord import InvalidArgumentError  # noqa: F401

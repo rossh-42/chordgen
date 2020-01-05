@@ -4,7 +4,6 @@ import mido
 import musthe
 import networkx as nx
 import re
-import time
 
 
 roman_numerals = (None, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII')
@@ -85,6 +84,10 @@ class KeyedChord(musthe.Chord):
         self.key = key
         self.scale = musthe.Scale(key, 'major')
         self.root_note = self.scale[self.degree-1]
+        self.bass_note = None
+        if chord_to_wrap.bass:
+            self.bass_note = self.scale[self.bass-1]
+            self.bass_note = self.bass_note.to_octave(2)
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
     def name(self):
@@ -98,6 +101,16 @@ class KeyedChord(musthe.Chord):
 
     def __repr__(self):
         return self.name()
+
+    def scientific_notation(self):
+        retval = ''
+        if self.bass_note:
+            retval += self.bass_note.scientific_notation()
+            retval += ' '
+        for note in self.notes:
+            retval += note.scientific_notation()
+            retval += ' '
+        return retval.strip()
 
 
 class MidiFile(object):
@@ -125,11 +138,10 @@ class MidiFile(object):
                                                      time=on_time))
 
     def add_chord(self, keyed_chord, velocity=64, time=1000):
-        if keyed_chord.bass:
-            bass_note = keyed_chord.scale[keyed_chord.bass]
+        if keyed_chord.bass_note:
+            bass_note = keyed_chord.bass_note
         else:
-            bass_note = keyed_chord.notes[0]
-        bass_note = bass_note.to_octave(2)
+            bass_note = keyed_chord.notes[0].to_octave(2)
 
         self._add_track_note('bass', bass_note.midi_note(), velocity, time, 5)
 
@@ -272,22 +284,6 @@ def validate_start(start, chord_map):
     node = chord_map._find_node_by_chord(chord)
     if node is None:
         raise InvalidArgumentError('Chord ({}) not found in map for this key ({})'.format(start, chord_map.key))
-
-
-def chordgen(key, start, num, output):
-    validate_key(key)
-    cm = ChordMap(key)
-    validate_start(start, cm)
-    for seq in cm.gen_sequence(start, num):
-        print(make_file_name_from_chord_sequence(seq))
-        filename = make_file_name_from_chord_sequence(seq) + '.mid'
-        midi_file = MidiFile(filename)
-        for keyed_chord in seq:
-            midi_file.add_chord(keyed_chord)
-        if output in ('f', 'b'):
-            midi_file.write()
-        if output in ('m', 'b'):
-            midi_file.play(raise_exceptions=True)
 
 
 class _ChordGraphNode(object):
