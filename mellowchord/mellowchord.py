@@ -4,7 +4,6 @@ import mido
 import musthe
 import networkx as nx
 import re
-import time
 
 
 roman_numerals = (None, 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII')

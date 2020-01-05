@@ -18,9 +18,9 @@ def main():
     chordgen_parser.add_argument('output', type=str, choices=['f', 'm', 'b'],
                                  help='output type (f=file, m=midi, b=both)')
 
-    melodygen_parser = subparsers.add_parser('melodygen',
-                                             aliases=['m'],
-                                             help='Generate a melody to match a chord sequence')
+    subparsers.add_parser('melodygen',
+                          aliases=['m'],
+                          help='Generate a melody to match a chord sequence')
 
     args = parser.parse_args()
     try:
