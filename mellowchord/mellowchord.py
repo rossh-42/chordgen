@@ -84,6 +84,10 @@ class KeyedChord(musthe.Chord):
         self.key = key
         self.scale = musthe.Scale(key, 'major')
         self.root_note = self.scale[self.degree-1]
+        self.bass_note = None
+        if chord_to_wrap.bass:
+            self.bass_note = self.scale[self.bass-1]
+            self.bass_note = self.bass_note.to_octave(2)
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
     def name(self):
@@ -97,6 +101,16 @@ class KeyedChord(musthe.Chord):
 
     def __repr__(self):
         return self.name()
+
+    def scientific_notation(self):
+        retval = ''
+        if self.bass_note:
+            retval += self.bass_note.scientific_notation()
+            retval += ' '
+        for note in self.notes:
+            retval += note.scientific_notation()
+            retval += ' '
+        return retval.strip()
 
 
 class MidiFile(object):
@@ -124,11 +138,10 @@ class MidiFile(object):
                                                      time=on_time))
 
     def add_chord(self, keyed_chord, velocity=64, time=1000):
-        if keyed_chord.bass:
-            bass_note = keyed_chord.scale[keyed_chord.bass]
+        if keyed_chord.bass_note:
+            bass_note = keyed_chord.bass_note
         else:
-            bass_note = keyed_chord.notes[0]
-        bass_note = bass_note.to_octave(2)
+            bass_note = keyed_chord.notes[0].to_octave(2)
 
         self._add_track_note('bass', bass_note.midi_note(), velocity, time, 5)
 

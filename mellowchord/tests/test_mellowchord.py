@@ -68,6 +68,19 @@ def test_keyed_chord():
     assert kc.notes[0] == musthe.Note('C')
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
+    assert kc.scientific_notation() == 'C4 E4 G4'
+    assert kc.bass_note is None
+
+
+def test_keyed_chord_with_bass():
+    c = Chord(1, 'maj', 5)
+    kc = KeyedChord('C', c)
+    assert len(kc.notes) == 3
+    assert kc.notes[0] == musthe.Note('C')
+    assert kc.notes[1] == musthe.Note('E')
+    assert kc.notes[2] == musthe.Note('G')
+    assert kc.scientific_notation() == 'G2 C4 E4 G4'
+    assert kc.bass_note == kc.notes[2].to_octave(2)
 
 
 def test_keyed_chord_midi():
