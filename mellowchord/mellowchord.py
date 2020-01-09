@@ -1,5 +1,4 @@
 import copy
-from json import JSONEncoder
 import mido
 import musthe
 import networkx as nx
@@ -22,21 +21,12 @@ class InvalidArgumentError(MellowchordError):
 
 
 class Chord(object):
-    def __init__(self, degree, chord_type, bass=None):
+    def __init__(self, degree, chord_type, inversion=None):
         self.degree = int(degree)
         assert chord_type in musthe.Chord.valid_types
         self.chord_type = chord_type
-        self.bass = None
-        if bass is not None:
-            self.bass = int(bass)
-
-    def chord_name_modifiers(self):
-        modifiers = self._third
-        if self._add is not None:
-            modifiers += '{}'.format(self._add)
-        if self._bass is not None:
-            modifiers += '/{}'.format(self._bass)
-        return modifiers
+        assert inversion in (None, 1, 2)
+        self.inversion = inversion
 
     def name(self):
         roman = roman_numerals[self.degree]
@@ -50,8 +40,10 @@ class Chord(object):
         else:
             chord_name = roman.upper()
         chord_name += self.chord_type
-        if self.bass:
-            chord_name += '/{}'.format(self.bass)
+        if self.inversion == 1:
+            chord_name += '/{}'.format((self.degree + 2) % 7)
+        elif self.inversion == 2:
+            chord_name += '/{}'.format((self.degree + 4) % 7)
         return chord_name
 
     def __repr__(self):
@@ -66,34 +58,39 @@ class Chord(object):
             if self.chord_type == alias:
                 normalized_chord_type = musthe.Chord.aliases[alias]
                 break
-        return hash((self.degree, normalized_chord_type, self.bass))
+        return hash((self.degree, normalized_chord_type, self.inversion))
 
     def __eq__(self, other):
         if self.degree == other.degree:
             if chords_types_are_equal(self.chord_type, other.chord_type):
-                if self.bass == other.bass:
+                if self.inversion == other.inversion:
                     return True
         return False
+
+
+def apply_inversion(keyed_chord, inversion):
+    if inversion == 0:
+        inversion = None
+    inverted_chord = Chord(keyed_chord.degree, keyed_chord.chord_type, inversion)
+    return KeyedChord(keyed_chord.key, inverted_chord)
 
 
 class KeyedChord(musthe.Chord):
     def __init__(self, key, chord_to_wrap):
         self.degree = chord_to_wrap.degree
         self.chord_type = chord_to_wrap.chord_type
-        self.bass = chord_to_wrap.bass
+        self.inversion = chord_to_wrap.inversion
         self.key = key
         self.scale = musthe.Scale(key, 'major')
         self.root_note = self.scale[self.degree-1]
-        self.bass_note = None
-        if chord_to_wrap.bass:
-            self.bass_note = self.scale[self.bass-1]
-            self.bass_note = self.bass_note.to_octave(2)
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
     def name(self):
         name = '{}{}'.format(str(self.root_note), self.chord_type)
-        if self.bass:
-            name += '/{}'.format(str(self.scale[self.bass-1]))
+        if self.inversion == 1:
+            name += '/{}'.format(str(self.scale[self.degree + 1]))
+        elif self.inversion == 2:
+            name += '/{}'.format(str(self.scale[self.degree + 3]))
         return name
 
     def __str__(self):
@@ -102,13 +99,34 @@ class KeyedChord(musthe.Chord):
     def __repr__(self):
         return self.name()
 
+    @property
+    def inverted_notes(self):
+        retval = {}
+        for index, note in enumerate(self.notes):
+            if self.inversion == 1 and index == 0:
+                inverted_note = note.to_octave(note.octave + 1)
+                retval['root'] = inverted_note
+            elif self.inversion == 2 and index == 2:
+                inverted_note = note.to_octave(note.octave - 1)
+                retval['fifth'] = inverted_note
+            else:
+                track_names = ('root', 'third', 'fifth', 'seventh')
+                retval[track_names[index]] = note
+        return retval
+
     def scientific_notation(self):
         retval = ''
-        if self.bass_note:
-            retval += self.bass_note.scientific_notation()
-            retval += ' '
-        for note in self.notes:
-            retval += note.scientific_notation()
+        if len(self.notes) == 3:
+            track_order = ('root', 'third', 'fifth')
+        elif len(self.notes) == 4:
+            track_order = ('root', 'third', 'fifth', 'seventh')
+
+        if self.inversion == 1:
+            track_order = ('third', 'fifth', 'root')
+        elif self.inversion == 2:
+            track_order = ('fifth', 'root', 'third')
+        for track_name in track_order:
+            retval += '{}'.format(self.inverted_notes[track_name].scientific_notation())
             retval += ' '
         return retval.strip()
 
@@ -120,7 +138,7 @@ class MidiFile(object):
     def __init__(self, filename, program=0):
         self._filename = filename
         self._tracks = {}
-        for track_name in ('bass', 'root', 'third', 'fifth', 'seventh'):
+        for track_name in ('root', 'third', 'fifth', 'seventh'):
             track = mido.MidiTrack()
             track.name = track_name
             self._tracks[track_name] = track
@@ -138,15 +156,12 @@ class MidiFile(object):
                                                      time=on_time))
 
     def add_chord(self, keyed_chord, velocity=64, time=1000):
-        if keyed_chord.bass_note:
-            bass_note = keyed_chord.bass_note
-        else:
-            bass_note = keyed_chord.notes[0].to_octave(2)
+        # bass_note = keyed_chord.root_note.to_octave(2)
+        # self._add_track_note('bass', bass_note.midi_note(), velocity, time, 5)
 
-        self._add_track_note('bass', bass_note.midi_note(), velocity, time, 5)
-
-        for index, track_name in enumerate(['root', 'third', 'fifth']):
-            self._add_track_note(track_name, keyed_chord.notes[index].midi_note(), velocity, time, 5)
+        notes_dict = keyed_chord.inverted_notes
+        for track_name in ['root', 'third', 'fifth']:
+            self._add_track_note(track_name, notes_dict[track_name].midi_note(), velocity, time, 5)
 
         if len(keyed_chord.notes) >= 4:
             self._add_track_note('seventh', keyed_chord.notes[3].midi_note(), velocity, time, 5)
@@ -159,7 +174,7 @@ class MidiFile(object):
     def _make_midi_file(self):
         midi_file = mido.MidiFile()
         tracks_copy = copy.copy(self._tracks)
-        for track_name in ('bass', 'root', 'third', 'fifth', 'seventh'):
+        for track_name in ('root', 'third', 'fifth', 'seventh'):
             self._tracks[track_name].append(MidiFile.ALL_SOUNDS_OFF)
             midi_file.tracks.append(tracks_copy[track_name])
         return midi_file
@@ -179,20 +194,20 @@ class MidiFile(object):
                 raise MellowchordError(str(e))
 
 
-class KeyedChordEncoder(JSONEncoder):
-    def default(self, o):
-        ret_dict = {}
-        ret_dict['degree'] = o.degree
-        ret_dict['chord_type'] = o.chord_type
-        ret_dict['bass'] = o.bass
-        ret_dict['key'] = o.key
-        return ret_dict
+# class KeyedChordEncoder(JSONEncoder):
+#     def default(self, o):
+#         ret_dict = {}
+#         ret_dict['degree'] = o.degree
+#         ret_dict['chord_type'] = o.chord_type
+#         ret_dict['bass'] = o.bass
+#         ret_dict['key'] = o.key
+#         return ret_dict
 
 
-def keyed_chord_decoder(json_object):
-    return KeyedChord(json_object['key'], Chord(json_object['degree'],
-                                                json_object['chord_type'],
-                                                json_object['bass']))
+# def keyed_chord_decoder(json_object):
+#     return KeyedChord(json_object['key'], Chord(json_object['degree'],
+#                                                 json_object['chord_type'],
+#                                                 json_object['bass']))
 
 
 def chords_types_are_equal(chord_type_1, chord_type_2):
@@ -231,6 +246,16 @@ def _split_bass(chord_string, key=None):
 
 def string_to_chord(chord_string, key=None):
     (chord_string_minus_bass, bass) = _split_bass(chord_string, key)
+
+    def bass_to_inversion(bass, degree):
+        if bass is None:
+            return None
+        elif bass == (degree + 2) % 7:
+            return 1
+        elif bass == (degree + 4) % 7:
+            return 2
+        assert False, 'Unsupported slash chord {}'.format(chord_string)
+
     try:
         c = musthe.Chord(chord_string_minus_bass)
         degree = None
@@ -240,7 +265,7 @@ def string_to_chord(chord_string, key=None):
                 degree = d + 1
                 break
         assert degree
-        return Chord(degree, c.chord_type, bass)
+        return Chord(degree, c.chord_type, bass_to_inversion(bass, degree))
     except ValueError:
         pass
     m = re.search(r'(VII|VI|V|III|II|IV|I|vii|vi|v|iii|ii|iv|i)([^\/]*)($|\/\d)', chord_string)
@@ -250,7 +275,7 @@ def string_to_chord(chord_string, key=None):
     chord_type_string = m.group(2)
     for degree, numeral in enumerate(roman_numerals):
         if numeral == degree_string.upper():
-            return Chord(degree, chord_type_string, bass)
+            return Chord(degree, chord_type_string, bass_to_inversion(bass, degree))
     raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
 
 
@@ -303,15 +328,15 @@ class _ChordGraphNode(object):
 
 
 IM = Chord(1, 'maj')
-IM_3 = Chord(1, 'maj', bass=3)
-IM_5 = Chord(1, 'maj', bass=5)
+IM_3 = Chord(1, 'maj', inversion=1)
+IM_5 = Chord(1, 'maj', inversion=2)
 IM7 = Chord(1, 'maj7')
 iim = Chord(2, 'min')
 iiim = Chord(3, 'min')
 IVM = Chord(4, 'maj')
-IVM_1 = Chord(4, 'maj', bass=1)
+IVM_1 = Chord(4, 'maj', inversion=2)
 VM = Chord(5, 'maj')
-VM_1 = Chord(5, 'maj', bass=1)
+VM_2 = Chord(5, 'maj', inversion=2)
 vim = Chord(6, 'min')
 
 
@@ -327,14 +352,14 @@ class ChordMap(nx.DiGraph):
         IVM_gn = _ChordGraphNode([IVM])
         IVM_1_gn = _ChordGraphNode([IVM_1])
         VM_gn = _ChordGraphNode([VM])
-        VM_1_gn = _ChordGraphNode([VM_1])
+        VM_2_gn = _ChordGraphNode([VM_2])
         vim_gn = _ChordGraphNode([vim])
 
         self._g.add_nodes_from([IM_gn, IM_3_gn, IM_5_gn, iim_gn, iiim_gn,
-                                IVM_gn, IVM_1_gn, VM_gn, VM_1_gn, vim_gn])
+                                IVM_gn, IVM_1_gn, VM_gn, VM_2_gn, vim_gn])
 
         self._g.add_edge(IM_gn, IVM_1_gn)
-        self._g.add_edge(IM_gn, VM_1_gn)
+        self._g.add_edge(IM_gn, VM_2_gn)
 
         self._g.add_edge(IM_3_gn, iim_gn)
 
@@ -358,7 +383,7 @@ class ChordMap(nx.DiGraph):
         self._g.add_edge(VM_gn, iiim_gn)
         self._g.add_edge(VM_gn, vim_gn)
 
-        self._g.add_edge(VM_1_gn, IM_gn)
+        self._g.add_edge(VM_2_gn, IM_gn)
 
         self._g.add_edge(vim_gn, IVM_gn)
         self._g.add_edge(vim_gn, iim_gn)
@@ -391,7 +416,7 @@ class ChordMap(nx.DiGraph):
         elif isinstance(current_chord, KeyedChord):
             assert self.key
             assert current_chord.key == self.key
-            current_chord = Chord(current_chord.degree, current_chord.chord_type, current_chord.bass)
+            current_chord = Chord(current_chord.degree, current_chord.chord_type, current_chord.inversion)
         node = self._find_node_by_chord(current_chord)
         assert node is not None
         for successor in self._g.successors(node):

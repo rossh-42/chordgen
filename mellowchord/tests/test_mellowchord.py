@@ -1,3 +1,4 @@
+from mellowchord import apply_inversion
 from mellowchord import _split_bass
 from mellowchord import string_to_chord
 from mellowchord import string_to_keyed_chord
@@ -10,7 +11,7 @@ from mellowchord import IM, IM_3, IM_5, IM7
 from mellowchord import iim
 from mellowchord import iiim
 from mellowchord import IVM, IVM_1
-from mellowchord import VM, VM_1
+from mellowchord import VM, VM_2
 from mellowchord import vim
 from mellowchord import MidiFile
 import mido
@@ -31,7 +32,7 @@ def chord_in(chord_string, list_of_chords):
 def test_major_chord():
     c = Chord(1, 'maj')
     assert c.degree == 1
-    assert c.bass is None
+    assert c.inversion is None
     assert c.name() == 'Imaj'
 
 
@@ -44,15 +45,19 @@ def test_chord_aliases_equal():
 def test_minor_chord():
     c = Chord(3, 'min')
     assert c.degree == 3
-    assert c.bass is None
+    assert c.inversion is None
     assert c.name() == 'iiimin'
 
 
-def test_slash_chord():
-    c = Chord(4, 'maj', bass=1)
+def test_chord_with_inversion():
+    c = Chord(4, 'maj', inversion=2)
     assert c.degree == 4
-    assert c.bass == 1
+    assert c.inversion == 2
     assert c.name() == 'IVmaj/1'
+    c = Chord(4, 'maj', inversion=1)
+    assert c.degree == 4
+    assert c.inversion == 1
+    assert c.name() == 'IVmaj/6'
 
 
 def test_node_name():
@@ -69,23 +74,43 @@ def test_keyed_chord():
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
     assert kc.scientific_notation() == 'C4 E4 G4'
-    assert kc.bass_note is None
+    assert kc.inversion is None
 
 
-def test_keyed_chord_with_bass():
-    c = Chord(1, 'maj', 5)
+def test_keyed_chord_seventh():
+    c = Chord(1, 'maj7')
+    kc = KeyedChord('C', c)
+    assert len(kc.notes) == 4
+    assert kc.notes[0] == musthe.Note('C')
+    assert kc.notes[1] == musthe.Note('E')
+    assert kc.notes[2] == musthe.Note('G')
+    assert kc.notes[3] == musthe.Note('B')
+    assert kc.scientific_notation() == 'C4 E4 G4 B4'
+    assert kc.inversion is None
+
+
+def test_keyed_chord_with_inversion():
+    c = Chord(1, 'maj', inversion=2)
     kc = KeyedChord('C', c)
     assert len(kc.notes) == 3
     assert kc.notes[0] == musthe.Note('C')
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
-    assert kc.scientific_notation() == 'G2 C4 E4 G4'
-    assert kc.bass_note == kc.notes[2].to_octave(2)
+    assert kc.scientific_notation() == 'G3 C4 E4'
+    assert kc.name() == 'Cmaj/G'
+    c = Chord(1, 'maj', inversion=1)
+    kc = KeyedChord('C', c)
+    assert len(kc.notes) == 3
+    assert kc.notes[0] == musthe.Note('C')
+    assert kc.notes[1] == musthe.Note('E')
+    assert kc.notes[2] == musthe.Note('G')
+    assert kc.scientific_notation() == 'E4 G4 C5'
+    assert kc.name() == 'Cmaj/E'
 
 
 def test_keyed_chord_midi():
     midi_file = MidiFile('test.mid')
-    kc1 = KeyedChord('C', Chord(1, 'maj'))
+    kc1 = KeyedChord('C', Chord(1, 'maj7'))
     midi_file.add_chord(kc1)
     kc4 = KeyedChord('C', Chord(4, 'maj'))
     midi_file.add_chord(kc4)
@@ -105,8 +130,8 @@ def test_keyed_chord_midi():
 
 def test_map():
     cm = ChordMap()
-    set([IVM_1, VM_1])
-    assert set(cm.next_chords(IM)) == set([IVM_1, VM_1])
+    set([IVM_1, VM_2])
+    assert set(cm.next_chords(IM)) == set([IVM_1, VM_2])
     assert set(cm.next_chords(IM_3)) == set([iim])
     assert set(cm.next_chords(IM_5)) == set([])
     assert set(cm.next_chords(iim)) == set([IM_5, iiim, VM])
@@ -114,7 +139,7 @@ def test_map():
     assert set(cm.next_chords(IVM)) == set([IM, IM_3, IM_5, iim, VM])
     assert set(cm.next_chords(IVM_1)) == set([IM])
     assert set(cm.next_chords(VM)) == set([IM, iiim, vim])
-    assert set(cm.next_chords(VM_1)) == set([IM])
+    assert set(cm.next_chords(VM_2)) == set([IM])
     assert set(cm.next_chords(vim)) == set([iim, IVM])
 
 
@@ -122,7 +147,7 @@ def test_map_C():
     cm = ChordMap('C')
     next_chords = cm.next_chords(IM)
     assert chord_in('Fmaj/C', next_chords)
-    assert chord_in('Gmaj/C', next_chords)
+    assert chord_in('Gmaj/D', next_chords)
     next_chords = cm.next_chords(iim)
     assert chord_in('Gmaj', next_chords)
     assert chord_in('Emin', next_chords)
@@ -133,7 +158,7 @@ def test_map_B_flat():
     cm = ChordMap('Bb')
     next_chords = cm.next_chords(IM)
     assert chord_in('Ebmaj/Bb', next_chords)
-    assert chord_in('Fmaj/Bb', next_chords)
+    assert chord_in('Fmaj/C', next_chords)
 
 
 def test_next():
@@ -158,7 +183,7 @@ def test_next_chords_string():
     cm = ChordMap('C')
     next_chords = cm.next_chords('Cmaj')
     assert chord_in('Fmaj/C', next_chords)
-    assert chord_in('Gmaj/C', next_chords)
+    assert chord_in('Gmaj/D', next_chords)
 
 
 def test_simple_sequence():
@@ -173,7 +198,7 @@ def test_gen_sequence():
     for seq in cm.gen_sequence('Cmaj', 3):
         assert len(seq) == 3
         assert str(seq[0]) == 'Cmaj'
-        assert str(seq[1]) in ('Fmaj/C', 'Gmaj/C')
+        assert str(seq[1]) in ('Fmaj/C', 'Gmaj/D')
         assert str(seq[2]) in ('Cmaj', 'Cmaj7')
 
 
@@ -201,7 +226,7 @@ def test_string_to_chord_keyless():
     assert string_to_chord('IVM') == IVM
     assert string_to_chord('IVM/1') == IVM_1
     assert string_to_chord('VM') == VM
-    assert string_to_chord('VM/1') == VM_1
+    assert string_to_chord('VM/2') == VM_2
     assert string_to_chord('vim') == vim
 
 
@@ -217,7 +242,7 @@ def test_string_to_chord():
         assert string_to_chord('{}maj'.format(scale[3]), key) == IVM
         assert string_to_chord('{}maj/{}'.format(scale[3], scale[0]), key) == IVM_1
         assert string_to_chord('{}maj'.format(scale[4]), key) == VM
-        assert string_to_chord('{}maj/{}'.format(scale[4], scale[0]), key) == VM_1
+        assert string_to_chord('{}maj/{}'.format(scale[4], scale[1]), key) == VM_2
         assert string_to_chord('{}min'.format(scale[5]), key) == vim
 
         with pytest.raises(ChordParseError):
@@ -242,7 +267,7 @@ def test_string_to_keyed_chord():
         assert string_to_keyed_chord('{}maj'.format(scale[3]), key) == KeyedChord(key, IVM)
         assert string_to_keyed_chord('{}maj/{}'.format(scale[3], scale[0]), key) == KeyedChord(key, IVM_1)
         assert string_to_keyed_chord('{}maj'.format(scale[4]), key) == KeyedChord(key, VM)
-        assert string_to_keyed_chord('{}maj/{}'.format(scale[4], scale[0]), key) == KeyedChord(key, VM_1)
+        assert string_to_keyed_chord('{}maj/{}'.format(scale[4], scale[1]), key) == KeyedChord(key, VM_2)
 
         with pytest.raises(ChordParseError):
             string_to_keyed_chord('Hmaj', key)
@@ -252,3 +277,13 @@ def test_string_to_keyed_chord():
             string_to_keyed_chord('Amin/foo', key)
         with pytest.raises(ChordParseError):
             string_to_keyed_chord('Amin/8', key)
+
+
+def test_apply_inversion():
+    kc = KeyedChord('C', Chord(1, 'maj'))
+    kc_1 = apply_inversion(kc, 1)
+    assert kc_1.inversion == 1
+    kc_2 = apply_inversion(kc, 2)
+    assert kc_2.inversion == 2
+    kc_0 = apply_inversion(kc_2, 0)
+    assert kc_0.inversion is None
