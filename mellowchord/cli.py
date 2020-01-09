@@ -1,4 +1,5 @@
 import argparse
+from mellowchord import apply_inversion
 from mellowchord import ChordMap
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import MellowchordError
@@ -32,6 +33,21 @@ def main():
         print(e)
 
 
+def get_command(prompt):
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    cmd = readchar.readkey()
+    print(cmd)
+    return cmd
+
+
+def write_midi_file(seq, filename):
+    midi_file = MidiFile(filename)
+    for keyed_chord in seq:
+        midi_file.add_chord(keyed_chord)
+    return midi_file
+
+
 def chordgen(key, start, num):
     validate_key(key)
     cm = ChordMap(key)
@@ -40,17 +56,11 @@ def chordgen(key, start, num):
         seq_name = make_file_name_from_chord_sequence(seq)
         print(seq_name)
         filename = make_file_name_from_chord_sequence(seq) + '.mid'
-        midi_file = MidiFile(filename)
-        for keyed_chord in seq:
-            midi_file.add_chord(keyed_chord)
+        midi_file = write_midi_file(seq, filename)
         while True:
-            sys.stdout.write('>')
-            sys.stdout.flush()
-            cmd = readchar.readkey()
-            print(cmd)
-            if cmd.lower() == 's':
-                midi_file.write()
-                print('Saved {} to disk'.format(filename))
+            cmd = get_command('>')
+            if cmd.lower() == 'n':
+                break
             if cmd.lower() == 'p':
                 print('Playing {}'.format(seq_name))
                 midi_file.play(raise_exceptions=True)
@@ -60,9 +70,19 @@ def chordgen(key, start, num):
                     sys.stdout.write(': ')
                     sys.stdout.write(keyed_chord.scientific_notation())
                     sys.stdout.write('\n')
+            if cmd.lower() == 't':
+                chord_index = int(get_command('chord_in_sequence?>'))
+                assert chord_index in list(range(len(seq)))
+                inversion = int(get_command('transposition?>'))
+                assert inversion in (0, 1, 2)
+                original_chord_string = str(seq[chord_index])
+                seq[chord_index] = apply_inversion(seq[chord_index], inversion)
+                midi_file = write_midi_file(seq, filename)
+                print('converted {} to {}'.format(original_chord_string, seq[chord_index]))
+            if cmd.lower() == 's':
+                midi_file.write()
+                print('Saved {} to disk'.format(filename))
             if cmd.lower() == 'q':
                 sys.exit(0)
-            if cmd.lower() == 'n':
-                break
             if cmd.lower() == 'h':
-                print('(s)ave (p)lay (n)ext (i)nfo (q)uit')
+                print('(n)ext (p)lay (i)nfo (t)ranspose (s)ave (q)uit')
