@@ -75,6 +75,18 @@ def apply_inversion(keyed_chord, inversion):
     return KeyedChord(keyed_chord.key, inverted_chord)
 
 
+def raise_or_lower_an_octave(keyed_chord, up):
+    retval_keyed_chord = copy.deepcopy(keyed_chord)
+    for index, note in enumerate(retval_keyed_chord.notes):
+        original_octave = note.octave
+        if up:
+            new_octave = original_octave + 1
+        else:
+            new_octave = original_octave - 1
+        retval_keyed_chord.notes[index] = note.to_octave(new_octave)
+    return retval_keyed_chord
+
+
 class KeyedChord(musthe.Chord):
     def __init__(self, key, chord_to_wrap):
         self.degree = chord_to_wrap.degree
