@@ -14,6 +14,7 @@ from mellowchord import IVM, IVM_1
 from mellowchord import VM, VM_2
 from mellowchord import vim
 from mellowchord import MidiFile
+from mellowchord import raise_or_lower_an_octave
 import mido
 import musthe
 import pytest
@@ -287,3 +288,13 @@ def test_apply_inversion():
     assert kc_2.inversion == 2
     kc_0 = apply_inversion(kc_2, 0)
     assert kc_0.inversion is None
+
+
+def test_raise_or_lower_an_octave():
+    kc = KeyedChord('C', Chord(1, 'maj'))
+    kc_up = raise_or_lower_an_octave(kc, True)
+    for index, note in enumerate(kc_up.notes):
+        assert note.octave == kc.notes[index].octave + 1
+    kc_down = raise_or_lower_an_octave(kc, False)
+    for index, note in enumerate(kc_down.notes):
+        assert note.octave == kc.notes[index].octave - 1
