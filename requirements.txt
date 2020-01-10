@@ -4,6 +4,7 @@
 #
 #    pip-compile
 #
+configargparse==1.0
 decorator==4.4.1          # via networkx
 mido==1.2.9
 musthe==1.0.0
