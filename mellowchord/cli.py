@@ -1,4 +1,4 @@
-import argparse
+from configargparse import ArgumentParser
 from mellowchord import apply_inversion
 from mellowchord import ChordMap
 from mellowchord import make_file_name_from_chord_sequence
@@ -7,12 +7,20 @@ from mellowchord import MidiFile
 from mellowchord import raise_or_lower_an_octave
 from mellowchord import validate_key
 from mellowchord import validate_start
+import os
 import readchar
 import sys
 
+CONFIG_FILE_HELP = ' (you can also set this in ~/.mellowchord)'
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Tool for generating chord sequences and melodies as MIDI files')
+    parser = ArgumentParser(default_config_files=['~/.mellowchord'],
+                            description='Tool for generating chord sequences and melodies as MIDI files')
+    parser.add_argument('-w', '--workingdir',
+                        type=str, help='Directory to write MIDI files' + CONFIG_FILE_HELP, default=os.getcwd())
+    parser.add_argument('-p', '--program',
+                        type=int, help='MIDI program value' + CONFIG_FILE_HELP, default=0)
     subparsers = parser.add_subparsers(dest='command')
 
     chordgen_parser = subparsers.add_parser('chordgen', aliases=['c'], help='Generate a series of chord sequences')
@@ -27,7 +35,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command in ('chordgen', 'c'):
-            chordgen(args.key, args.start, args.num)
+            chordgen(args.key, args.start, args.num, args.workingdir, args.program)
         elif args.command in ('melodygen', 'm'):
             raise MellowchordError('not implemented!')
     except MellowchordError as e:
@@ -42,14 +50,14 @@ def get_command(prompt):
     return cmd
 
 
-def write_midi_file(seq, filename):
-    midi_file = MidiFile(filename)
+def write_midi_file(seq, midi_file_path, program):
+    midi_file = MidiFile(midi_file_path, program)
     for keyed_chord in seq:
         midi_file.add_chord(keyed_chord)
     return midi_file
 
 
-def chordgen(key, start, num):
+def chordgen(key, start, num, workingdir, program):
     validate_key(key)
     cm = ChordMap(key)
     validate_start(start, cm)
@@ -57,7 +65,8 @@ def chordgen(key, start, num):
         seq_name = make_file_name_from_chord_sequence(seq)
         print(seq_name)
         filename = make_file_name_from_chord_sequence(seq) + '.mid'
-        midi_file = write_midi_file(seq, filename)
+        midi_file_path = os.path.join(workingdir, filename)
+        midi_file = write_midi_file(seq, midi_file_path, program)
         while True:
             cmd = get_command('>')
             if cmd.lower() == 'n':
@@ -78,15 +87,15 @@ def chordgen(key, start, num):
                 assert inversion in (0, 1, 2)
                 original_chord_string = str(seq[chord_index])
                 seq[chord_index] = apply_inversion(seq[chord_index], inversion)
-                midi_file = write_midi_file(seq, filename)
+                midi_file = write_midi_file(seq, midi_file_path, program)
                 print('converted {} to {}'.format(original_chord_string, seq[chord_index]))
             elif cmd.lower() == 'o':
                 chord_index = int(get_command('chord_in_sequence?>'))
                 assert chord_index in list(range(len(seq)))
                 up_or_down = get_command('+_or_-?>')
                 assert up_or_down in ('+', '-')
-                seq[chord_index] = raise_or_lower_an_octave(seq[chord_index], up_or_down=='+')
-                midi_file = write_midi_file(seq, filename)
+                seq[chord_index] = raise_or_lower_an_octave(seq[chord_index], up_or_down == '+')
+                midi_file = write_midi_file(seq, midi_file_path, program)
                 if up_or_down == '+':
                     verb = 'raised'
                 else:

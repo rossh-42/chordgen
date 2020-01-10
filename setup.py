@@ -13,7 +13,8 @@ def get_global(file_name, global_name):
 setup(
     name=get_global("version.py", "__title__"),
     version=get_global("version.py", "__version__"),
-    install_requires=['mido',
+    install_requires=['ConfigArgParse',
+                      'mido',
                       'musthe',
                       'networkx',
                       'readchar'],
