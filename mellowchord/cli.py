@@ -8,19 +8,27 @@ from mellowchord import raise_or_lower_an_octave
 from mellowchord import validate_key
 from mellowchord import validate_start
 import os
+from pathlib import Path
 import readchar
 import sys
 
-CONFIG_FILE_HELP = ' (you can also set this in ~/.mellowchord)'
+
+home = str(Path.home())
+config_file_path = os.path.join(home, '.mellowchord')
+CONFIG_FILE_HELP = ' (you can also set this in {})'.format(config_file_path)
 
 
 def main():
-    parser = ArgumentParser(default_config_files=['~/.mellowchord'],
+    home = str(Path.home())
+    config_file_path = os.path.join(home, '.mellowchord')
+    parser = ArgumentParser(default_config_files=[config_file_path],
                             description='Tool for generating chord sequences and melodies as MIDI files')
     parser.add_argument('-w', '--workingdir',
                         type=str, help='Directory to write MIDI files' + CONFIG_FILE_HELP, default=os.getcwd())
     parser.add_argument('-p', '--program',
                         type=int, help='MIDI program value' + CONFIG_FILE_HELP, default=0)
+    parser.add_argument('-a', '--autoplay',
+                        action='store_true', help='New MIDI automatically plays' + CONFIG_FILE_HELP)
     subparsers = parser.add_subparsers(dest='command')
 
     chordgen_parser = subparsers.add_parser('chordgen', aliases=['c'], help='Generate a series of chord sequences')
@@ -35,7 +43,7 @@ def main():
     args = parser.parse_args()
     try:
         if args.command in ('chordgen', 'c'):
-            chordgen(args.key, args.start, args.num, args.workingdir, args.program)
+            chordgen(args.key, args.start, args.num, args.workingdir, args.program, args.autoplay)
         elif args.command in ('melodygen', 'm'):
             raise MellowchordError('not implemented!')
     except MellowchordError as e:
@@ -57,7 +65,7 @@ def write_midi_file(seq, midi_file_path, program):
     return midi_file
 
 
-def chordgen(key, start, num, workingdir, program):
+def chordgen(key, start, num, workingdir, program, autoplay):
     validate_key(key)
     cm = ChordMap(key)
     validate_start(start, cm)
@@ -67,6 +75,8 @@ def chordgen(key, start, num, workingdir, program):
         filename = make_file_name_from_chord_sequence(seq) + '.mid'
         midi_file_path = os.path.join(workingdir, filename)
         midi_file = write_midi_file(seq, midi_file_path, program)
+        if autoplay:
+            midi_file.play(raise_exceptions=True)
         while True:
             cmd = get_command('>')
             if cmd.lower() == 'n':
