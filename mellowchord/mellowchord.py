@@ -307,6 +307,16 @@ def make_file_name_from_chord_sequence(seq):
     return name
 
 
+def chord_in(chord_string, list_of_chords):
+    """Return true if the chord represented by chord_string is in
+    the given list of musthe.Chord objects.
+    """
+    for chord in list_of_chords:
+        if chord_string == str(chord):
+            return True
+    return False
+
+
 def validate_key(key):
     try:
         musthe.Note(key)
