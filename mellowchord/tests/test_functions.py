@@ -29,7 +29,7 @@ def test_validate_start():
     cm = ChordMap('C')
     validate_start('Cmaj', cm)
     with pytest.raises(MellowchordError):
-        validate_start('Dmaj', cm)
+        validate_start('Bbmin', cm)
     with pytest.raises(MellowchordError):
         validate_start('foo', cm)
 

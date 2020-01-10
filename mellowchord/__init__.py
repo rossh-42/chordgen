@@ -18,6 +18,10 @@ from .mellowchord import IVM_1  # noqa: F401
 from .mellowchord import vim  # noqa: F401
 from .mellowchord import VM  # noqa: F401
 from .mellowchord import VM_2  # noqa: F401
+from .mellowchord import IIM  # noqa: F401
+from .mellowchord import IIIM  # noqa: F401
+from .mellowchord import VIM  # noqa: F401
+from .mellowchord import VIIM  # noqa: F401
 from .mellowchord import KeyedChord  # noqa: F401
 from .mellowchord import chords_types_are_equal  # noqa: F401
 from .mellowchord import ChordParseError  # noqa: F401

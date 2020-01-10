@@ -361,6 +361,11 @@ VM = Chord(5, 'maj')
 VM_2 = Chord(5, 'maj', inversion=2)
 vim = Chord(6, 'min')
 
+VIM = Chord(6, 'maj')
+VIIM = Chord(7, 'maj')
+IIM = Chord(2, 'maj')
+IIIM = Chord(3, 'maj')
+
 
 class ChordMap(nx.DiGraph):
     def __init__(self, key=None):
@@ -376,6 +381,11 @@ class ChordMap(nx.DiGraph):
         VM_gn = _ChordGraphNode([VM])
         VM_2_gn = _ChordGraphNode([VM_2])
         vim_gn = _ChordGraphNode([vim])
+
+        VIM_gn = _ChordGraphNode([VIM])
+        VIIM_gn = _ChordGraphNode([VIIM])
+        IIM_gn = _ChordGraphNode([IIM])
+        IIIM_gn = _ChordGraphNode([IIIM])
 
         self._g.add_nodes_from([IM_gn, IM_3_gn, IM_5_gn, iim_gn, iiim_gn,
                                 IVM_gn, IVM_1_gn, VM_gn, VM_2_gn, vim_gn])
@@ -409,6 +419,13 @@ class ChordMap(nx.DiGraph):
 
         self._g.add_edge(vim_gn, IVM_gn)
         self._g.add_edge(vim_gn, iim_gn)
+
+        self._g.add_edge(VIM_gn, iim_gn)
+        self._g.add_edge(VIIM_gn, iiim_gn)
+        self._g.add_edge(IM_gn, IVM_gn)
+        self._g.add_edge(IIM_gn, VM_gn)
+        self._g.add_edge(IIIM_gn, vim_gn)
+
         self.key = key
         if self.key:
             self.scale = musthe.Scale(self.key, 'major')
