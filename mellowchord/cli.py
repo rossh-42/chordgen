@@ -50,12 +50,21 @@ def main():
         print(e)
 
 
-def get_command(prompt):
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-    cmd = readchar.readkey()
-    print(cmd)
-    return cmd
+def get_command(prompt, valid_cmds=None):
+    while True:
+        sys.stdout.write(prompt)
+        sys.stdout.flush()
+        cmd = readchar.readkey()
+        print(cmd)
+        if cmd == 'q':
+            sys.exit(0)
+        if valid_cmds:
+            if cmd in [str(c) for c in valid_cmds]:
+                return cmd
+            else:
+                print('Valid responses are {}'.format(valid_cmds + ['q']))
+                continue
+        return cmd
 
 
 def write_midi_file(seq, midi_file_path, program):
@@ -78,32 +87,28 @@ def chordgen(key, start, num, workingdir, program, autoplay):
         if autoplay:
             midi_file.play(raise_exceptions=True)
         while True:
-            cmd = get_command('>')
-            if cmd.lower() == 'n':
+            cmd = get_command('>', valid_cmds=['n', 'p', 'i', 't', 'o', 's', 'h'])
+            if cmd == 'n':
                 break
-            elif cmd.lower() == 'p':
+            elif cmd == 'p':
                 print('Playing {}'.format(seq_name))
                 midi_file.play(raise_exceptions=True)
-            elif cmd.lower() == 'i':
+            elif cmd == 'i':
                 for keyed_chord in seq:
                     sys.stdout.write(str(keyed_chord))
                     sys.stdout.write(': ')
                     sys.stdout.write(keyed_chord.scientific_notation())
                     sys.stdout.write('\n')
-            elif cmd.lower() == 't':
-                chord_index = int(get_command('chord_in_sequence?>'))
-                assert chord_index in list(range(len(seq)))
-                inversion = int(get_command('transposition?>'))
-                assert inversion in (0, 1, 2)
+            elif cmd == 't':
+                chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
+                inversion = int(get_command('transposition?>', valid_cmds=[0, 1, 2]))
                 original_chord_string = str(seq[chord_index])
                 seq[chord_index] = apply_inversion(seq[chord_index], inversion)
                 midi_file = write_midi_file(seq, midi_file_path, program)
                 print('converted {} to {}'.format(original_chord_string, seq[chord_index]))
-            elif cmd.lower() == 'o':
-                chord_index = int(get_command('chord_in_sequence?>'))
-                assert chord_index in list(range(len(seq)))
-                up_or_down = get_command('+_or_-?>')
-                assert up_or_down in ('+', '-')
+            elif cmd == 'o':
+                chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
+                up_or_down = get_command('+_or_-?>', valid_cmds=['+', '-'])
                 seq[chord_index] = raise_or_lower_an_octave(seq[chord_index], up_or_down == '+')
                 midi_file = write_midi_file(seq, midi_file_path, program)
                 if up_or_down == '+':
@@ -111,12 +116,10 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 else:
                     verb = 'lowered'
                 print('{} {} by one octave'.format(verb, seq[chord_index]))
-            elif cmd.lower() == 's':
+            elif cmd == 's':
                 midi_file.write()
                 print('Saved {} to disk'.format(filename))
-            elif cmd.lower() == 'q':
-                sys.exit(0)
-            elif cmd.lower() == 'h':
+            elif cmd == 'h':
                 print('(n)ext (p)lay (i)nfo (t)ranspose (o)ctave (s)ave (q)uit')
 
 
