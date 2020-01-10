@@ -6,12 +6,13 @@ from mellowchord import iiim
 from mellowchord import IVM, IVM_1
 from mellowchord import VM, VM_2
 from mellowchord import vim
+from mellowchord import IIM, IIIM, VIM, VIIM
 
 
 def test_map():
     cm = ChordMap()
     set([IVM_1, VM_2])
-    assert set(cm.next_chords(IM)) == set([IVM_1, VM_2])
+    assert set(cm.next_chords(IM)) == set([IVM_1, VM_2, IVM])
     assert set(cm.next_chords(IM_3)) == set([iim])
     assert set(cm.next_chords(IM_5)) == set([])
     assert set(cm.next_chords(iim)) == set([IM_5, iiim, VM])
@@ -21,6 +22,10 @@ def test_map():
     assert set(cm.next_chords(VM)) == set([IM, iiim, vim])
     assert set(cm.next_chords(VM_2)) == set([IM])
     assert set(cm.next_chords(vim)) == set([iim, IVM])
+    assert set(cm.next_chords(IIM)) == set([VM])
+    assert set(cm.next_chords(IIIM)) == set([vim])
+    assert set(cm.next_chords(VIM)) == set([iim])
+    assert set(cm.next_chords(VIIM)) == set([iiim])
 
 
 def test_map_C():
@@ -78,5 +83,5 @@ def test_gen_sequence():
     for seq in cm.gen_sequence('Cmaj', 3):
         assert len(seq) == 3
         assert str(seq[0]) == 'Cmaj'
-        assert str(seq[1]) in ('Fmaj/C', 'Gmaj/D')
-        assert str(seq[2]) in ('Cmaj', 'Cmaj7')
+        assert str(seq[1]) in ('Fmaj', 'Fmaj/C', 'Gmaj/D')
+        assert str(seq[2]) in ('Gmaj', 'Dmin', 'Cmaj/G', 'Cmaj/E', 'Cmaj', 'Cmaj7')
