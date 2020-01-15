@@ -15,20 +15,19 @@ import sys
 
 home = str(Path.home())
 config_file_path = os.path.join(home, '.mellowchord')
-CONFIG_FILE_HELP = ' (you can also set this in {})'.format(config_file_path)
 
 
 def main():
     home = str(Path.home())
     config_file_path = os.path.join(home, '.mellowchord')
     parser = ArgumentParser(default_config_files=[config_file_path],
-                            description='Tool for generating chord sequences and melodies as MIDI files')
+                            description='Tool for generating chord sequences and melodies as MIDI files.')
     parser.add_argument('-w', '--workingdir',
-                        type=str, help='Directory to write MIDI files' + CONFIG_FILE_HELP, default=os.getcwd())
+                        type=str, help='Directory to write MIDI files', default=os.getcwd())
     parser.add_argument('-p', '--program',
-                        type=int, help='MIDI program value' + CONFIG_FILE_HELP, default=0)
+                        type=int, help='MIDI program value', default=0)
     parser.add_argument('-a', '--autoplay',
-                        action='store_true', help='New MIDI automatically plays' + CONFIG_FILE_HELP)
+                        action='store_true', help='New MIDI automatically plays')
     subparsers = parser.add_subparsers(dest='command')
 
     chordgen_parser = subparsers.add_parser('chordgen', aliases=['c'], help='Generate a series of chord sequences')
