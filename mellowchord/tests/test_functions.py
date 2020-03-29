@@ -9,6 +9,7 @@ from mellowchord import KeyedChord
 from mellowchord import MellowchordError
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import raise_or_lower_an_octave
+from mellowchord import scale_from_key_string
 from mellowchord import string_to_chord
 from mellowchord import string_to_keyed_chord
 from mellowchord import validate_key
@@ -136,3 +137,15 @@ def test_raise_or_lower_an_octave():
     kc_down = raise_or_lower_an_octave(kc, False)
     for index, note in enumerate(kc_down.notes):
         assert note.octave == kc.notes[index].octave - 1
+
+
+def test_scale_from_key_string():
+    # musthe.Scale lacks a functional __eq__ operator so we must convert to string to compare
+    assert str(scale_from_key_string('C')) == str(musthe.Scale('C', 'major'))
+    assert str(scale_from_key_string('Cmaj')) == str(musthe.Scale('C', 'major'))
+    assert str(scale_from_key_string('Amin')) == str(musthe.Scale('A', 'natural_minor'))
+    assert str(scale_from_key_string('Amin(N)')) == str(musthe.Scale('A', 'natural_minor'))
+    # assert str(scale_from_key_string('Amin(H)')) == str(musthe.Scale('A', 'harmonic_minor'))
+    # assert str(scale_from_key_string('Amin(M)')) == str(musthe.Scale('A', 'melodic_minor'))
+    with pytest.raises(ChordParseError):
+        scale_from_key_string('foo')

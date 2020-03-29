@@ -39,6 +39,17 @@ def test_map_C():
     assert chord_in('Cmaj/G', next_chords)
 
 
+def test_map_A_minor():
+    a_min = ChordMap('Amin')
+    next_chords = a_min.next_chords('Amin')
+    assert chord_in('Dmin/A', next_chords)
+    assert chord_in('Emin/B', next_chords)
+    next_chords = a_min.next_chords('Bmin')
+    assert chord_in('Cmaj', next_chords)
+    assert chord_in('Emin', next_chords)
+    assert chord_in('Amin/E', next_chords)
+
+
 def test_map_B_flat():
     cm = ChordMap('Bb')
     next_chords = cm.next_chords(IM)
