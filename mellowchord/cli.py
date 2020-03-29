@@ -61,7 +61,8 @@ def get_command(prompt, valid_cmds=None):
             if cmd in [str(c) for c in valid_cmds]:
                 return cmd
             else:
-                print('Valid responses are {}'.format(valid_cmds + ['q']))
+                printed_commands = valid_cmds + ['q']
+                print(f'Valid responses are {printed_commands}')
                 continue
         return cmd
 
@@ -90,7 +91,7 @@ def chordgen(key, start, num, workingdir, program, autoplay):
             if cmd == 'n':
                 break
             elif cmd == 'p':
-                print('Playing {}'.format(seq_name))
+                print(f'Playing {seq_name}')
                 midi_file.play(raise_exceptions=True)
             elif cmd == 'i':
                 for keyed_chord in seq:
@@ -104,7 +105,7 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 original_chord_string = str(seq[chord_index])
                 seq[chord_index] = apply_inversion(seq[chord_index], inversion)
                 midi_file = write_midi_file(seq, midi_file_path, program)
-                print('converted {} to {}'.format(original_chord_string, seq[chord_index]))
+                print(f'converted {original_chord_string} to {seq[chord_index]}')
             elif cmd == 'o':
                 chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
                 up_or_down = get_command('+_or_-?>', valid_cmds=['+', '-'])
@@ -114,10 +115,10 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                     verb = 'raised'
                 else:
                     verb = 'lowered'
-                print('{} {} by one octave'.format(verb, seq[chord_index]))
+                print(f'{verb} {seq[chord_index]} by one octave')
             elif cmd == 's':
                 midi_file.write()
-                print('Saved {} to disk'.format(filename))
+                print(f'Saved {filename} to disk')
             elif cmd == 'h':
                 print('(n)ext (p)lay (i)nfo (t)ranspose (o)ctave (s)ave (q)uit')
 
