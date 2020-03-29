@@ -41,9 +41,9 @@ class Chord(object):
             chord_name = roman.upper()
         chord_name += self.chord_type
         if self.inversion == 1:
-            chord_name += '/{}'.format((self.degree + 2) % 7)
+            chord_name += f'/{(self.degree + 2) % 7}'
         elif self.inversion == 2:
-            chord_name += '/{}'.format((self.degree + 4) % 7)
+            chord_name += f'/{(self.degree + 4) % 7}'
         return chord_name
 
     def __repr__(self):
@@ -98,11 +98,11 @@ class KeyedChord(musthe.Chord):
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
     def name(self):
-        name = '{}{}'.format(str(self.root_note), self.chord_type)
+        name = f'{self.root_note}{self.chord_type}'
         if self.inversion == 1:
-            name += '/{}'.format(str(self.scale[self.degree + 1]))
+            name += f'/{self.scale[self.degree + 1]}'
         elif self.inversion == 2:
-            name += '/{}'.format(str(self.scale[self.degree + 3]))
+            name += f'/{self.scale[self.degree + 3]}'
         return name
 
     def __str__(self):
@@ -138,7 +138,7 @@ class KeyedChord(musthe.Chord):
         elif self.inversion == 2:
             track_order = ('fifth', 'root', 'third')
         for track_name in track_order:
-            retval += '{}'.format(self.inverted_notes[track_name].scientific_notation())
+            retval += f'{self.inverted_notes[track_name].scientific_notation()}'
             retval += ' '
         return retval.strip()
 
@@ -237,14 +237,14 @@ def _split_bass(chord_string, key=None):
         try:
             degree_int = int(m.group(2))
             if degree_int not in range(1, 8):
-                raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+                raise ChordParseError(f'Can\'t parse chord string "{chord_string}"')
         except ValueError:
             try:
                 n = musthe.Note(m.group(2))
             except ValueError:
-                raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+                raise ChordParseError(f'Can\'t parse chord string "{chord_string}"')
             if key is None:
-                raise ChordParseError('Can\'t parse chord string "{}" without a key'.format(chord_string))
+                raise ChordParseError(f'Can\'t parse chord string "{chord_string}" without a key')
             scale = scale_from_key_string(key)
             for degree in range(1, 9):
                 compare_n = scale[degree-1]
@@ -266,7 +266,7 @@ def string_to_chord(chord_string, key=None):
             return 1
         elif bass == (degree + 4) % 7:
             return 2
-        assert False, 'Unsupported slash chord {}'.format(chord_string)
+        assert False, f'Unsupported slash chord {chord_string}'
 
     try:
         c = musthe.Chord(chord_string_minus_bass)
@@ -282,13 +282,13 @@ def string_to_chord(chord_string, key=None):
         pass
     m = re.search(r'(VII|VI|V|III|II|IV|I|vii|vi|v|iii|ii|iv|i)([^\/]*)($|\/\d)', chord_string)
     if m is None:
-        raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+        raise ChordParseError(f'Can\'t parse chord string "{chord_string}"')
     degree_string = m.group(1)
     chord_type_string = m.group(2)
     for degree, numeral in enumerate(roman_numerals):
         if numeral == degree_string.upper():
             return Chord(degree, chord_type_string, bass_to_inversion(bass, degree))
-    raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
+    raise ChordParseError(f'Can\'t parse chord string "{chord_string}"')
 
 
 def string_to_keyed_chord(chord_string, key):
@@ -321,7 +321,7 @@ def validate_key(key):
     try:
         scale_from_key_string(key)
     except Exception:
-        raise InvalidArgumentError('Invalid key "{}"'.format(key))
+        raise InvalidArgumentError(f'Invalid key "{key}"')
     return True
 
 
@@ -330,7 +330,7 @@ def validate_start(start, chord_map):
     chord = string_to_chord(start, chord_map.key)
     node = chord_map._find_node_by_chord(chord)
     if node is None:
-        raise InvalidArgumentError('Chord ({}) not found in map for this key ({})'.format(start, chord_map.key))
+        raise InvalidArgumentError(f'Chord ({start}) not found in map for this key ({chord_map.key})')
 
 
 def scale_from_key_string(key_string):
@@ -349,12 +349,12 @@ def scale_from_key_string(key_string):
             #     return musthe.Scale(root_note, 'harmonic_minor')
             # elif key_type == 'min(M)':
             #     return musthe.Scale(root_note, 'melodic_minor')
-            raise ChordParseError('invalid key_type {}'.format(key_type))
+            raise ChordParseError(f'invalid key_type "{key_type}"')
         except Exception:
             pass
         key_type = root_note[-1] + key_type
         root_note = root_note[:-1]
-    raise ChordParseError('invalid key_string {}'.format(key_string))
+    raise ChordParseError(f'invalid key_string "{key_string}"')
 
 
 class _ChordGraphNode(object):
@@ -366,7 +366,7 @@ class _ChordGraphNode(object):
         retval = '('
         num_chords = len(self.chords)
         for index, chord in enumerate(self.chords):
-            retval += '{}'.format(chord.name())
+            retval += chord.name()
             if index != num_chords-1:
                 retval += ', '
         retval += ')'

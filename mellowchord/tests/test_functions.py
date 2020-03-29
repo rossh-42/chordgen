@@ -74,16 +74,16 @@ def test_string_to_chord():
     for note in musthe.Note.all():
         key = str(note)
         scale = musthe.Scale(key, 'major')
-        assert string_to_chord('{}maj'.format(scale[0]), key) == IM
-        assert string_to_chord('{}maj/{}'.format(scale[0], scale[2]), key) == IM_3
-        assert string_to_chord('{}maj/{}'.format(scale[0], scale[4]), key) == IM_5
-        assert string_to_chord('{}min'.format(scale[1]), key) == iim
-        assert string_to_chord('{}min'.format(scale[2]), key) == iiim
-        assert string_to_chord('{}maj'.format(scale[3]), key) == IVM
-        assert string_to_chord('{}maj/{}'.format(scale[3], scale[0]), key) == IVM_1
-        assert string_to_chord('{}maj'.format(scale[4]), key) == VM
-        assert string_to_chord('{}maj/{}'.format(scale[4], scale[1]), key) == VM_2
-        assert string_to_chord('{}min'.format(scale[5]), key) == vim
+        assert string_to_chord(f'{scale[0]}maj', key) == IM
+        assert string_to_chord(f'{scale[0]}maj/{scale[2]}', key) == IM_3
+        assert string_to_chord(f'{scale[0]}maj/{scale[4]}', key) == IM_5
+        assert string_to_chord(f'{scale[1]}min', key) == iim
+        assert string_to_chord(f'{scale[2]}min', key) == iiim
+        assert string_to_chord(f'{scale[3]}maj', key) == IVM
+        assert string_to_chord(f'{scale[3]}maj/{scale[0]}', key) == IVM_1
+        assert string_to_chord(f'{scale[4]}maj', key) == VM
+        assert string_to_chord(f'{scale[4]}maj/{scale[1]}', key) == VM_2
+        assert string_to_chord(f'{scale[5]}min', key) == vim
 
         with pytest.raises(ChordParseError):
             string_to_chord('Hmaj', key)
@@ -99,15 +99,15 @@ def test_string_to_keyed_chord():
     for note in musthe.Note.all():
         key = str(note)
         scale = musthe.Scale(key, 'major')
-        assert string_to_keyed_chord('{}maj'.format(scale[0]), key) == KeyedChord(key, IM)
-        assert string_to_keyed_chord('{}maj/{}'.format(scale[0], scale[2]), key) == KeyedChord(key, IM_3)
-        assert string_to_keyed_chord('{}maj/{}'.format(scale[0], scale[4]), key) == KeyedChord(key, IM_5)
-        assert string_to_keyed_chord('{}min'.format(scale[1]), key) == KeyedChord(key, iim)
-        assert string_to_keyed_chord('{}min'.format(scale[2]), key) == KeyedChord(key, iiim)
-        assert string_to_keyed_chord('{}maj'.format(scale[3]), key) == KeyedChord(key, IVM)
-        assert string_to_keyed_chord('{}maj/{}'.format(scale[3], scale[0]), key) == KeyedChord(key, IVM_1)
-        assert string_to_keyed_chord('{}maj'.format(scale[4]), key) == KeyedChord(key, VM)
-        assert string_to_keyed_chord('{}maj/{}'.format(scale[4], scale[1]), key) == KeyedChord(key, VM_2)
+        assert string_to_keyed_chord(f'{scale[0]}maj', key) == KeyedChord(key, IM)
+        assert string_to_keyed_chord(f'{scale[0]}maj/{scale[2]}', key) == KeyedChord(key, IM_3)
+        assert string_to_keyed_chord(f'{scale[0]}maj/{scale[4]}', key) == KeyedChord(key, IM_5)
+        assert string_to_keyed_chord(f'{scale[1]}min', key) == KeyedChord(key, iim)
+        assert string_to_keyed_chord(f'{scale[2]}min', key) == KeyedChord(key, iiim)
+        assert string_to_keyed_chord(f'{scale[3]}maj', key) == KeyedChord(key, IVM)
+        assert string_to_keyed_chord(f'{scale[3]}maj/{scale[0]}', key) == KeyedChord(key, IVM_1)
+        assert string_to_keyed_chord(f'{scale[4]}maj', key) == KeyedChord(key, VM)
+        assert string_to_keyed_chord(f'{scale[4]}maj/{scale[1]}', key) == KeyedChord(key, VM_2)
 
         with pytest.raises(ChordParseError):
             string_to_keyed_chord('Hmaj', key)
