@@ -31,7 +31,7 @@ def main():
     subparsers = parser.add_subparsers(dest='command')
 
     chordgen_parser = subparsers.add_parser('chordgen', aliases=['c'], help='Generate a series of chord sequences')
-    chordgen_parser.add_argument('key', type=str, help='key (all keys are major)')
+    chordgen_parser.add_argument('key', type=str, help='major or natural minor key to generate chords from')
     chordgen_parser.add_argument('start', type=str, help='name of the chord to start from')
     chordgen_parser.add_argument('num', type=int, help='number of chords in each sequence')
 

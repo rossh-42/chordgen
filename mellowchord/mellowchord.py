@@ -93,7 +93,7 @@ class KeyedChord(musthe.Chord):
         self.chord_type = chord_to_wrap.chord_type
         self.inversion = chord_to_wrap.inversion
         self.key = key
-        self.scale = musthe.Scale(key, 'major')
+        self.scale = scale_from_key_string(key)
         self.root_note = self.scale[self.degree-1]
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
@@ -245,7 +245,7 @@ def _split_bass(chord_string, key=None):
                 raise ChordParseError('Can\'t parse chord string "{}"'.format(chord_string))
             if key is None:
                 raise ChordParseError('Can\'t parse chord string "{}" without a key'.format(chord_string))
-            scale = musthe.Scale(key, 'major')
+            scale = scale_from_key_string(key)
             for degree in range(1, 9):
                 compare_n = scale[degree-1]
                 if n.letter == compare_n.letter:
@@ -271,7 +271,7 @@ def string_to_chord(chord_string, key=None):
     try:
         c = musthe.Chord(chord_string_minus_bass)
         degree = None
-        scale = musthe.Scale(key, 'major')
+        scale = scale_from_key_string(key)
         for d in range(7):
             if scale[d].letter == c.notes[0].letter:
                 degree = d + 1
@@ -319,7 +319,7 @@ def chord_in(chord_string, list_of_chords):
 
 def validate_key(key):
     try:
-        musthe.Note(key)
+        scale_from_key_string(key)
     except Exception:
         raise InvalidArgumentError('Invalid key "{}"'.format(key))
     return True
@@ -331,6 +331,30 @@ def validate_start(start, chord_map):
     node = chord_map._find_node_by_chord(chord)
     if node is None:
         raise InvalidArgumentError('Chord ({}) not found in map for this key ({})'.format(start, chord_map.key))
+
+
+def scale_from_key_string(key_string):
+    """Return musthe.Scale object that corresponds to the given key
+    in string form."""
+    root_note = key_string
+    key_type = ''
+    while key_type != key_string:
+        try:
+            musthe.Note(root_note)
+            if key_type in ('', 'maj'):
+                return musthe.Scale(root_note, 'major')
+            elif key_type in ('min', 'min(N)'):
+                return musthe.Scale(root_note, 'natural_minor')
+            # elif key_type == 'min(H)':
+            #     return musthe.Scale(root_note, 'harmonic_minor')
+            # elif key_type == 'min(M)':
+            #     return musthe.Scale(root_note, 'melodic_minor')
+            raise ChordParseError('invalid key_type {}'.format(key_type))
+        except Exception:
+            pass
+        key_type = root_note[-1] + key_type
+        root_note = root_note[:-1]
+    raise ChordParseError('invalid key_string {}'.format(key_string))
 
 
 class _ChordGraphNode(object):
@@ -369,7 +393,32 @@ IIIM = Chord(3, 'maj')
 
 class ChordMap(nx.DiGraph):
     def __init__(self, key=None):
-        self._g = nx.DiGraph()
+        self.key = key
+        minor = False
+        chord_types = ['dummy', 'maj', 'min', 'min', 'maj', 'maj', 'min', 'min']
+        if self.key:
+            self.scale = scale_from_key_string(self.key)
+            if self.scale.name == 'natural_minor':
+                minor = True
+                chord_types = ['dummy', 'min', 'min', 'maj', 'min', 'min', 'maj', 'maj']
+
+        IM = Chord(1, chord_types[1])
+        IM_3 = Chord(1, chord_types[1], inversion=1)
+        IM_5 = Chord(1, chord_types[1], inversion=2)
+        IM7 = Chord(1, chord_types[1]+'7')
+        iim = Chord(2, chord_types[2])
+        iiim = Chord(3, chord_types[3])
+        IVM = Chord(4, chord_types[4])
+        IVM_1 = Chord(4, chord_types[4], inversion=2)
+        VM = Chord(5, chord_types[5])
+        VM_2 = Chord(5, chord_types[5], inversion=2)
+        vim = Chord(6, chord_types[6])
+
+        if not minor:
+            VIM = Chord(6, 'maj')
+            VIIM = Chord(7, 'maj')
+            IIM = Chord(2, 'maj')
+            IIIM = Chord(3, 'maj')
 
         IM_gn = _ChordGraphNode([IM, IM7])
         IM_3_gn = _ChordGraphNode([IM_3])
@@ -382,10 +431,13 @@ class ChordMap(nx.DiGraph):
         VM_2_gn = _ChordGraphNode([VM_2])
         vim_gn = _ChordGraphNode([vim])
 
-        VIM_gn = _ChordGraphNode([VIM])
-        VIIM_gn = _ChordGraphNode([VIIM])
-        IIM_gn = _ChordGraphNode([IIM])
-        IIIM_gn = _ChordGraphNode([IIIM])
+        if not minor:
+            VIM_gn = _ChordGraphNode([VIM])
+            VIIM_gn = _ChordGraphNode([VIIM])
+            IIM_gn = _ChordGraphNode([IIM])
+            IIIM_gn = _ChordGraphNode([IIIM])
+
+        self._g = nx.DiGraph()
 
         self._g.add_nodes_from([IM_gn, IM_3_gn, IM_5_gn, iim_gn, iiim_gn,
                                 IVM_gn, IVM_1_gn, VM_gn, VM_2_gn, vim_gn])
@@ -420,15 +472,12 @@ class ChordMap(nx.DiGraph):
         self._g.add_edge(vim_gn, IVM_gn)
         self._g.add_edge(vim_gn, iim_gn)
 
-        self._g.add_edge(VIM_gn, iim_gn)
-        self._g.add_edge(VIIM_gn, iiim_gn)
-        self._g.add_edge(IM_gn, IVM_gn)
-        self._g.add_edge(IIM_gn, VM_gn)
-        self._g.add_edge(IIIM_gn, vim_gn)
-
-        self.key = key
-        if self.key:
-            self.scale = musthe.Scale(self.key, 'major')
+        if not minor:
+            self._g.add_edge(VIM_gn, iim_gn)
+            self._g.add_edge(VIIM_gn, iiim_gn)
+            self._g.add_edge(IM_gn, IVM_gn)
+            self._g.add_edge(IIM_gn, VM_gn)
+            self._g.add_edge(IIIM_gn, vim_gn)
 
     def _find_node_by_chord(self, chord):
         for node in self._g.nodes:
