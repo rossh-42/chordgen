@@ -54,6 +54,7 @@ def get_command(prompt, valid_cmds=None):
         sys.stdout.write(prompt)
         sys.stdout.flush()
         cmd = readchar.readkey()
+        cmd = cmd.lower()
         print(cmd)
         if cmd == 'q':
             sys.exit(0)
