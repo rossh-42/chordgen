@@ -28,6 +28,7 @@ class Chord(object):
         assert inversion in (None, 1, 2)
         self.inversion = inversion
 
+    @property
     def name(self):
         roman = roman_numerals[self.degree]
         try:
@@ -47,10 +48,10 @@ class Chord(object):
         return chord_name
 
     def __repr__(self):
-        return self.name()
+        return self.name
 
     def __str__(self):
-        return self.name()
+        return self.name
 
     def __hash__(self):
         normalized_chord_type = self.chord_type
@@ -97,6 +98,7 @@ class KeyedChord(musthe.Chord):
         self.root_note = self.scale[self.degree-1]
         musthe.Chord.__init__(self, self.root_note, chord_to_wrap.chord_type)
 
+    @property
     def name(self):
         name = f'{self.root_note}{self.chord_type}'
         if self.inversion == 1:
@@ -106,10 +108,10 @@ class KeyedChord(musthe.Chord):
         return name
 
     def __str__(self):
-        return self.name()
+        return self.name
 
     def __repr__(self):
-        return self.name()
+        return self.name
 
     @property
     def inverted_notes(self):
@@ -330,7 +332,11 @@ def validate_start(start, chord_map):
     chord = string_to_chord(start, chord_map.key)
     node = chord_map._find_node_by_chord(chord)
     if node is None:
-        raise InvalidArgumentError(f'Chord ({start}) not found in map for this key ({chord_map.key})')
+        all_chords_string = ''
+        for chord in chord_map.chord_strings:
+            all_chords_string += str(chord) + ','
+        raise InvalidArgumentError(f'Chord ({start}) not found in map for this key ({chord_map.key}) '
+                                   f'(valid chords = {all_chords_string})')
 
 
 def scale_from_key_string(key_string):
@@ -366,7 +372,7 @@ class _ChordGraphNode(object):
         retval = '('
         num_chords = len(self.chords)
         for index, chord in enumerate(self.chords):
-            retval += chord.name()
+            retval += chord.name
             if index != num_chords-1:
                 retval += ', '
         retval += ')'
@@ -478,6 +484,15 @@ class ChordMap(nx.DiGraph):
             self._g.add_edge(IM_gn, IVM_gn)
             self._g.add_edge(IIM_gn, VM_gn)
             self._g.add_edge(IIIM_gn, vim_gn)
+
+    @property
+    def chord_strings(self):
+        retval = set()
+        for node in self._g.nodes:
+            for chord in node.chords:
+                kc = KeyedChord(self.key, chord)
+                retval.add(kc.name)
+        return list(retval)
 
     def _find_node_by_chord(self, chord):
         for node in self._g.nodes:

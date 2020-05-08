@@ -10,7 +10,7 @@ def test_major_chord():
     c = Chord(1, 'maj')
     assert c.degree == 1
     assert c.inversion is None
-    assert c.name() == 'Imaj'
+    assert c.name == 'Imaj'
 
 
 def test_chord_aliases_equal():
@@ -23,18 +23,18 @@ def test_minor_chord():
     c = Chord(3, 'min')
     assert c.degree == 3
     assert c.inversion is None
-    assert c.name() == 'iiimin'
+    assert c.name == 'iiimin'
 
 
 def test_chord_with_inversion():
     c = Chord(4, 'maj', inversion=2)
     assert c.degree == 4
     assert c.inversion == 2
-    assert c.name() == 'IVmaj/1'
+    assert c.name == 'IVmaj/1'
     c = Chord(4, 'maj', inversion=1)
     assert c.degree == 4
     assert c.inversion == 1
-    assert c.name() == 'IVmaj/6'
+    assert c.name == 'IVmaj/6'
 
 
 def test_node_name():
@@ -74,7 +74,7 @@ def test_keyed_chord_with_inversion():
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
     assert kc.scientific_notation() == 'G3 C4 E4'
-    assert kc.name() == 'Cmaj/G'
+    assert kc.name == 'Cmaj/G'
     c = Chord(1, 'maj', inversion=1)
     kc = KeyedChord('C', c)
     assert len(kc.notes) == 3
@@ -82,7 +82,7 @@ def test_keyed_chord_with_inversion():
     assert kc.notes[1] == musthe.Note('E')
     assert kc.notes[2] == musthe.Note('G')
     assert kc.scientific_notation() == 'E4 G4 C5'
-    assert kc.name() == 'Cmaj/E'
+    assert kc.name == 'Cmaj/E'
 
 
 def test_keyed_chord_midi():

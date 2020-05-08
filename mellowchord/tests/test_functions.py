@@ -29,8 +29,10 @@ def test_validate_key():
 def test_validate_start():
     cm = ChordMap('C')
     validate_start('Cmaj', cm)
-    with pytest.raises(MellowchordError):
+    with pytest.raises(MellowchordError) as ex:
         validate_start('Bbmin', cm)
+    for chord_string in cm.chord_strings:
+        assert chord_string in str(ex)
     with pytest.raises(MellowchordError):
         validate_start('foo', cm)
 
