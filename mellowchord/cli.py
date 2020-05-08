@@ -1,6 +1,8 @@
 from configargparse import ArgumentParser
+import json
 from mellowchord import apply_inversion
 from mellowchord import ChordMap
+from mellowchord import KeyedChordEncoder
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import MellowchordError
 from mellowchord import MidiFile
@@ -82,13 +84,14 @@ def chordgen(key, start, num, workingdir, program, autoplay):
     for seq in cm.gen_sequence(start, num):
         seq_name = make_file_name_from_chord_sequence(seq)
         print(seq_name)
-        filename = make_file_name_from_chord_sequence(seq) + '.mid'
-        midi_file_path = os.path.join(workingdir, filename)
+        midi_filename = seq_name + '.mid'
+        midi_file_path = os.path.join(workingdir, midi_filename)
         midi_file = write_midi_file(seq, midi_file_path, program)
+        json_filename = seq_name + '.json'
         if autoplay:
             midi_file.play(raise_exceptions=True)
         while True:
-            cmd = get_command('>', valid_cmds=['n', 'p', 'i', 't', 'o', 's', 'h'])
+            cmd = get_command('>', valid_cmds=['n', 'p', 'i', 't', 'o', 'm', 'h', 'j'])
             if cmd == 'n':
                 break
             elif cmd == 'p':
@@ -117,11 +120,15 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 else:
                     verb = 'lowered'
                 print(f'{verb} {seq[chord_index]} by one octave')
-            elif cmd == 's':
+            elif cmd == 'm':
                 midi_file.write()
-                print(f'Saved {filename} to disk')
+                print(f'Saved {midi_filename} to disk')
+            elif cmd == 'j':
+                with open(json_filename, 'w') as f:
+                    json.dump(seq, f, cls=KeyedChordEncoder)
+                print(f'Saved {json_filename} to disk')
             elif cmd == 'h':
-                print('(n)ext (p)lay (i)nfo (t)ranspose (o)ctave (s)ave (q)uit')
+                print('(n)ext (p)lay (i)nfo (t)ranspose (o)ctave (j)son (m)idi (q)uit')
 
 
 if __name__ == "__main__":

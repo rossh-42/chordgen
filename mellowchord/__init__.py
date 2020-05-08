@@ -24,6 +24,8 @@ from .mellowchord import IIIM  # noqa: F401
 from .mellowchord import VIM  # noqa: F401
 from .mellowchord import VIIM  # noqa: F401
 from .mellowchord import KeyedChord  # noqa: F401
+from .mellowchord import KeyedChordEncoder  # noqa: F401
+from .mellowchord import keyed_chord_decoder  # noqa: F401
 from .mellowchord import chords_types_are_equal  # noqa: F401
 from .mellowchord import ChordParseError  # noqa: F401
 from .mellowchord import MidiFile  # noqa: F401

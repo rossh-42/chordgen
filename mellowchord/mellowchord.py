@@ -1,4 +1,5 @@
 import copy
+import json
 import mido
 import musthe
 import networkx as nx
@@ -145,6 +146,22 @@ class KeyedChord(musthe.Chord):
         return retval.strip()
 
 
+class KeyedChordEncoder(json.JSONEncoder):
+    def default(self, o):
+        ret_dict = {}
+        ret_dict['degree'] = o.degree
+        ret_dict['chord_type'] = o.chord_type
+        ret_dict['inversion'] = o.inversion
+        ret_dict['key'] = o.key
+        return ret_dict
+
+
+def keyed_chord_decoder(json_object):
+    return KeyedChord(json_object['key'], Chord(json_object['degree'],
+                                                json_object['chord_type'],
+                                                json_object['inversion']))
+
+
 class MidiFile(object):
     BUFFER_TIME = 500
     ALL_SOUNDS_OFF = mido.Message('control_change', control=120, value=0, time=BUFFER_TIME)
@@ -206,22 +223,6 @@ class MidiFile(object):
         except IOError as e:
             if raise_exceptions:
                 raise MellowchordError(str(e))
-
-
-# class KeyedChordEncoder(JSONEncoder):
-#     def default(self, o):
-#         ret_dict = {}
-#         ret_dict['degree'] = o.degree
-#         ret_dict['chord_type'] = o.chord_type
-#         ret_dict['bass'] = o.bass
-#         ret_dict['key'] = o.key
-#         return ret_dict
-
-
-# def keyed_chord_decoder(json_object):
-#     return KeyedChord(json_object['key'], Chord(json_object['degree'],
-#                                                 json_object['chord_type'],
-#                                                 json_object['bass']))
 
 
 def chords_types_are_equal(chord_type_1, chord_type_2):
@@ -543,6 +544,7 @@ class ChordMap(nx.DiGraph):
         return retval
 
     def gen_sequence(self, chord_string, num_chords, current_sequence=[], already_yielded=set()):
+        """Generator of sequences of KeyedChord objects"""
         current_sequence.append(chord_string)
         assert len(current_sequence) <= num_chords
         if len(current_sequence) == num_chords:
