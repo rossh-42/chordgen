@@ -1,3 +1,4 @@
+import json
 from mellowchord import _split_bass
 from mellowchord import apply_inversion
 from mellowchord import Chord
@@ -6,6 +7,8 @@ from mellowchord import ChordParseError
 from mellowchord import IM, IM_3, IM_5, IM7
 from mellowchord import iim, iiim, IVM, IVM_1, VM, VM_2, vim
 from mellowchord import KeyedChord
+from mellowchord import KeyedChordEncoder
+from mellowchord import keyed_chord_decoder
 from mellowchord import MellowchordError
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import raise_or_lower_an_octave
@@ -151,3 +154,14 @@ def test_scale_from_key_string():
     # assert str(scale_from_key_string('Amin(M)')) == str(musthe.Scale('A', 'melodic_minor'))
     with pytest.raises(ChordParseError):
         scale_from_key_string('foo')
+
+
+def test_keyed_chord_encoder():
+    kc1 = KeyedChord('C', Chord(1, 'maj'))
+    kc4 = KeyedChord('C', Chord(4, 'maj'))
+    kc5 = KeyedChord('C', Chord(5, 'maj'))
+    json_string = json.dumps([kc1, kc4, kc5], cls=KeyedChordEncoder)
+    loaded_seq = json.loads(json_string, object_hook=keyed_chord_decoder)
+    assert loaded_seq[0] == kc1
+    assert loaded_seq[1] == kc4
+    assert loaded_seq[2] == kc5
