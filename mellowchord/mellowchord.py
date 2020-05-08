@@ -22,12 +22,13 @@ class InvalidArgumentError(MellowchordError):
 
 
 class Chord(object):
-    def __init__(self, degree, chord_type, inversion=None):
+    def __init__(self, degree, chord_type, inversion=None, octave_adjustment=0):
         self.degree = int(degree)
         assert chord_type in musthe.Chord.valid_types
         self.chord_type = chord_type
         assert inversion in (None, 1, 2)
         self.inversion = inversion
+        self.octave_adjustment = octave_adjustment
 
     @property
     def name(self):
@@ -73,20 +74,17 @@ class Chord(object):
 def apply_inversion(keyed_chord, inversion):
     if inversion == 0:
         inversion = None
-    inverted_chord = Chord(keyed_chord.degree, keyed_chord.chord_type, inversion)
+    inverted_chord = Chord(keyed_chord.degree, keyed_chord.chord_type, inversion, keyed_chord.octave_adjustment)
     return KeyedChord(keyed_chord.key, inverted_chord)
 
 
 def raise_or_lower_an_octave(keyed_chord, up):
-    retval_keyed_chord = copy.deepcopy(keyed_chord)
-    for index, note in enumerate(retval_keyed_chord.notes):
-        original_octave = note.octave
-        if up:
-            new_octave = original_octave + 1
-        else:
-            new_octave = original_octave - 1
-        retval_keyed_chord.notes[index] = note.to_octave(new_octave)
-    return retval_keyed_chord
+    if up:
+        new_octave_adj = keyed_chord.octave_adjustment + 1
+    else:
+        new_octave_adj = keyed_chord.octave_adjustment - 1
+    adjusted_chord = Chord(keyed_chord.degree, keyed_chord.chord_type, keyed_chord.inversion, new_octave_adj)
+    return KeyedChord(keyed_chord.key, adjusted_chord)
 
 
 class KeyedChord(musthe.Chord):
@@ -94,6 +92,7 @@ class KeyedChord(musthe.Chord):
         self.degree = chord_to_wrap.degree
         self.chord_type = chord_to_wrap.chord_type
         self.inversion = chord_to_wrap.inversion
+        self.octave_adjustment = chord_to_wrap.octave_adjustment
         self.key = key
         self.scale = scale_from_key_string(key)
         self.root_note = self.scale[self.degree-1]
@@ -115,18 +114,18 @@ class KeyedChord(musthe.Chord):
         return self.name
 
     @property
-    def inverted_notes(self):
+    def adjusted_notes(self):
         retval = {}
         for index, note in enumerate(self.notes):
             if self.inversion == 1 and index == 0:
-                inverted_note = note.to_octave(note.octave + 1)
+                inverted_note = note.to_octave(note.octave + 1 + self.octave_adjustment)
                 retval['root'] = inverted_note
             elif self.inversion == 2 and index == 2:
-                inverted_note = note.to_octave(note.octave - 1)
+                inverted_note = note.to_octave(note.octave - 1 + self.octave_adjustment)
                 retval['fifth'] = inverted_note
             else:
                 track_names = ('root', 'third', 'fifth', 'seventh')
-                retval[track_names[index]] = note
+                retval[track_names[index]] = note.to_octave(note.octave + self.octave_adjustment)
         return retval
 
     def scientific_notation(self):
@@ -141,9 +140,17 @@ class KeyedChord(musthe.Chord):
         elif self.inversion == 2:
             track_order = ('fifth', 'root', 'third')
         for track_name in track_order:
-            retval += f'{self.inverted_notes[track_name].scientific_notation()}'
+            retval += f'{self.adjusted_notes[track_name].scientific_notation()}'
             retval += ' '
         return retval.strip()
+
+    def __eq__(self, other):
+        return self.degree == other.degree and\
+               self.chord_type == other.chord_type and\
+               self.inversion == other.inversion and\
+               self.octave_adjustment == other.octave_adjustment and\
+               self.key == other.key and\
+               self.adjusted_notes == other.adjusted_notes
 
 
 class KeyedChordEncoder(json.JSONEncoder):
@@ -152,6 +159,7 @@ class KeyedChordEncoder(json.JSONEncoder):
         ret_dict['degree'] = o.degree
         ret_dict['chord_type'] = o.chord_type
         ret_dict['inversion'] = o.inversion
+        ret_dict['octave_adjustment'] = o.octave_adjustment
         ret_dict['key'] = o.key
         return ret_dict
 
@@ -159,7 +167,8 @@ class KeyedChordEncoder(json.JSONEncoder):
 def keyed_chord_decoder(json_object):
     return KeyedChord(json_object['key'], Chord(json_object['degree'],
                                                 json_object['chord_type'],
-                                                json_object['inversion']))
+                                                json_object['inversion'],
+                                                json_object['octave_adjustment']))
 
 
 class MidiFile(object):
@@ -190,7 +199,7 @@ class MidiFile(object):
         # bass_note = keyed_chord.root_note.to_octave(2)
         # self._add_track_note('bass', bass_note.midi_note(), velocity, time, 5)
 
-        notes_dict = keyed_chord.inverted_notes
+        notes_dict = keyed_chord.adjusted_notes
         for track_name in ['root', 'third', 'fifth']:
             self._add_track_note(track_name, notes_dict[track_name].midi_note(), velocity, time, 5)
 

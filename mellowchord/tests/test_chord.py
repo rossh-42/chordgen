@@ -52,6 +52,8 @@ def test_keyed_chord():
     assert kc.notes[2] == musthe.Note('G')
     assert kc.scientific_notation() == 'C4 E4 G4'
     assert kc.inversion is None
+    assert kc == KeyedChord('C', c)
+    assert kc != KeyedChord('C', Chord(2, 'min'))
 
 
 def test_keyed_chord_seventh():
