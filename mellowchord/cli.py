@@ -3,6 +3,7 @@ import json
 from mellowchord import apply_inversion
 from mellowchord import ChordMap
 from mellowchord import KeyedChordEncoder
+from mellowchord import keyed_chord_decoder
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import MellowchordError
 from mellowchord import MidiFile
@@ -37,16 +38,18 @@ def main():
     chordgen_parser.add_argument('start', type=str, help='name of the chord to start from')
     chordgen_parser.add_argument('num', type=int, help='number of chords in each sequence')
 
-    subparsers.add_parser('melodygen',
-                          aliases=['m'],
-                          help='Generate a melody to match a chord sequence')
+    melodygen_parser = subparsers.add_parser('melodygen',
+                                             aliases=['m'],
+                                             help='Generate a melody to match a chord sequence')
+    melodygen_parser.add_argument('chord_sequence', type=str, help='Chord sequence JSON file that was '
+                                                                   'saved by chordgen')
 
     args = parser.parse_args()
     try:
         if args.command in ('chordgen', 'c'):
             chordgen(args.key, args.start, args.num, args.workingdir, args.program, args.autoplay)
         elif args.command in ('melodygen', 'm'):
-            raise MellowchordError('not implemented!')
+            melodygen(args.chord_sequence)
     except MellowchordError as e:
         print(e)
 
@@ -91,7 +94,7 @@ def chordgen(key, start, num, workingdir, program, autoplay):
         if autoplay:
             midi_file.play(raise_exceptions=True)
         while True:
-            cmd = get_command('>', valid_cmds=['n', 'p', 'i', 't', 'o', 'm', 'h', 'j'])
+            cmd = get_command('>', valid_cmds=['n', 'p', 'i', 'v', 'o', 'm', 'h', 'j'])
             if cmd == 'n':
                 break
             elif cmd == 'p':
@@ -103,9 +106,9 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                     sys.stdout.write(': ')
                     sys.stdout.write(keyed_chord.scientific_notation())
                     sys.stdout.write('\n')
-            elif cmd == 't':
+            elif cmd == 'v':
                 chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
-                inversion = int(get_command('transposition?>', valid_cmds=[0, 1, 2]))
+                inversion = int(get_command('inversion?>', valid_cmds=[0, 1, 2]))
                 original_chord_string = str(seq[chord_index])
                 seq[chord_index] = apply_inversion(seq[chord_index], inversion)
                 midi_file = write_midi_file(seq, midi_file_path, program)
@@ -128,7 +131,18 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                     json.dump(seq, f, cls=KeyedChordEncoder)
                 print(f'Saved {json_filename} to disk')
             elif cmd == 'h':
-                print('(n)ext (p)lay (i)nfo (t)ranspose (o)ctave (j)son (m)idi (q)uit')
+                print('(n)ext (p)lay (i)nfo in(v)ert (o)ctave (j)son (m)idi (q)uit')
+
+
+def melodygen(chord_sequence_file):
+    with open(chord_sequence_file, 'r') as f:
+        seq = json.load(f, object_hook=keyed_chord_decoder)
+
+    for keyed_chord in seq:
+        sys.stdout.write(str(keyed_chord))
+        sys.stdout.write(': ')
+        sys.stdout.write(keyed_chord.scientific_notation())
+        sys.stdout.write('\n')
 
 
 if __name__ == "__main__":

@@ -137,11 +137,11 @@ def test_apply_inversion():
 def test_raise_or_lower_an_octave():
     kc = KeyedChord('C', Chord(1, 'maj'))
     kc_up = raise_or_lower_an_octave(kc, True)
-    for index, note in enumerate(kc_up.notes):
-        assert note.octave == kc.notes[index].octave + 1
+    for track in ('root', 'third', 'fifth'):
+        assert kc.adjusted_notes[track].octave + 1 == kc_up.adjusted_notes[track].octave
     kc_down = raise_or_lower_an_octave(kc, False)
-    for index, note in enumerate(kc_down.notes):
-        assert note.octave == kc.notes[index].octave - 1
+    for track in ('root', 'third', 'fifth'):
+        assert kc.adjusted_notes[track].octave - 1 == kc_down.adjusted_notes[track].octave
 
 
 def test_scale_from_key_string():
@@ -158,6 +158,18 @@ def test_scale_from_key_string():
 
 def test_keyed_chord_encoder():
     kc1 = KeyedChord('C', Chord(1, 'maj'))
+    kc4 = KeyedChord('C', Chord(4, 'maj'))
+    kc5 = KeyedChord('C', Chord(5, 'maj'))
+    json_string = json.dumps([kc1, kc4, kc5], cls=KeyedChordEncoder)
+    loaded_seq = json.loads(json_string, object_hook=keyed_chord_decoder)
+    assert loaded_seq[0] == kc1
+    assert loaded_seq[1] == kc4
+    assert loaded_seq[2] == kc5
+
+
+def test_keyed_chord_encoder_with_octave_adjustment():
+    kc1 = KeyedChord('C', Chord(1, 'maj'))
+    kc1 = raise_or_lower_an_octave(kc1, up=True)
     kc4 = KeyedChord('C', Chord(4, 'maj'))
     kc5 = KeyedChord('C', Chord(5, 'maj'))
     json_string = json.dumps([kc1, kc4, kc5], cls=KeyedChordEncoder)
