@@ -1,4 +1,5 @@
 import copy
+import itertools
 import json
 import mido
 import musthe
@@ -583,3 +584,14 @@ def read_chord_sequence_json(json_filename):
     with open(json_filename, 'r') as f:
         input_dict = json.load(f, object_hook=keyed_chord_decoder)
     return (input_dict['key'], input_dict['seq'])
+
+
+class MelodyGenerator(object):
+    def __init__(self, key, chord_sequence):
+        self.key = key
+        self.chord_sequence = chord_sequence
+        self.scale = scale_from_key_string(key)
+
+    def gen_sequence(self):
+        for notes_on_chord in itertools.product(*[chord.notes for chord in self.chord_sequence]):
+            yield notes_on_chord

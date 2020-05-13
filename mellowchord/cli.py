@@ -6,6 +6,7 @@ from mellowchord import KeyedChordEncoder
 from mellowchord import keyed_chord_decoder
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import MellowchordError
+from mellowchord import MelodyGenerator
 from mellowchord import MidiFile
 from mellowchord import raise_or_lower_an_octave
 from mellowchord import validate_key
@@ -145,6 +146,9 @@ def melodygen(chord_sequence_file):
         sys.stdout.write(keyed_chord.scientific_notation())
         sys.stdout.write('\n')
 
+    melody_gen = MelodyGenerator(key, seq)
+    for notes in melody_gen.gen_sequence():
+        print(notes)
 
 if __name__ == "__main__":
     main()
