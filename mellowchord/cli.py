@@ -66,14 +66,30 @@ def get_command(prompt, valid_cmds=None):
         print(cmd)
         if cmd == 'q':
             sys.exit(0)
-        if valid_cmds:
-            if cmd in [str(c) for c in valid_cmds]:
-                return cmd
-            else:
-                printed_commands = valid_cmds + ['q']
-                print(f'Valid responses are {printed_commands}')
-                continue
-        return cmd
+        if cmd in [str(c) for c in valid_cmds]:
+            return cmd
+        else:
+            printed_commands = valid_cmds + ['q']
+            print(f'Valid responses are {printed_commands}')
+            continue
+
+def print_chord_sequence(key, seq):
+    print(f'key = {key}')
+    for keyed_chord in seq:
+        sys.stdout.write(str(keyed_chord))
+        sys.stdout.write(': ')
+        sys.stdout.write(keyed_chord.scientific_notation())
+        sys.stdout.write('\n')
+
+
+def print_melody(notes):
+    num_notes = len(notes)
+    sys.stdout.write('melody = ')
+    for index, note in enumerate(notes):
+        sys.stdout.write(str(note))
+        if index < num_notes - 1:
+            sys.stdout.write(' - ')
+    sys.stdout.write('\n')
 
 
 def write_midi_file(seq, midi_file_path, program):
@@ -104,11 +120,7 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 print(f'Playing {seq_name}')
                 midi_file.play(raise_exceptions=True)
             elif cmd == 'i':
-                for keyed_chord in seq:
-                    sys.stdout.write(str(keyed_chord))
-                    sys.stdout.write(': ')
-                    sys.stdout.write(keyed_chord.scientific_notation())
-                    sys.stdout.write('\n')
+                print_chord_sequence(key, seq)
             elif cmd == 'v':
                 chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
                 inversion = int(get_command('inversion?>', valid_cmds=[0, 1, 2]))
@@ -138,17 +150,20 @@ def chordgen(key, start, num, workingdir, program, autoplay):
 
 def melodygen(chord_sequence_file):
     key, seq = read_chord_sequence_json(chord_sequence_file)
-
-    print(f'key = {key}')
-    for keyed_chord in seq:
-        sys.stdout.write(str(keyed_chord))
-        sys.stdout.write(': ')
-        sys.stdout.write(keyed_chord.scientific_notation())
-        sys.stdout.write('\n')
-
+    print_chord_sequence(key, seq)
     melody_gen = MelodyGenerator(key, seq)
     for notes in melody_gen.gen_sequence():
-        print(notes)
+        print_melody(notes)
+        while True:
+            cmd = get_command('>', valid_cmds=['n', 'i', 'h'])
+            if cmd == 'n':
+                break
+            elif cmd == 'i':
+                print_chord_sequence(key, seq)
+                print_melody(notes)
+            elif cmd == 'h':
+                print('(n)ext (i)nfo (q)uit')
+
 
 if __name__ == "__main__":
     main()
