@@ -10,6 +10,8 @@ from mellowchord import MidiFile
 from mellowchord import raise_or_lower_an_octave
 from mellowchord import validate_key
 from mellowchord import validate_start
+from mellowchord import write_chord_sequence_json
+from mellowchord import read_chord_sequence_json
 import os
 from pathlib import Path
 import readchar
@@ -127,17 +129,16 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 midi_file.write()
                 print(f'Saved {midi_filename} to disk')
             elif cmd == 'j':
-                with open(json_filename, 'w') as f:
-                    json.dump(seq, f, cls=KeyedChordEncoder)
+                write_chord_sequence_json(json_filename, key, seq)
                 print(f'Saved {json_filename} to disk')
             elif cmd == 'h':
                 print('(n)ext (p)lay (i)nfo in(v)ert (o)ctave (j)son (m)idi (q)uit')
 
 
 def melodygen(chord_sequence_file):
-    with open(chord_sequence_file, 'r') as f:
-        seq = json.load(f, object_hook=keyed_chord_decoder)
+    key, seq = read_chord_sequence_json(chord_sequence_file)
 
+    print(f'key = {key}')
     for keyed_chord in seq:
         sys.stdout.write(str(keyed_chord))
         sys.stdout.write(': ')

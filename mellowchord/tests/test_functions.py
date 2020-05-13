@@ -17,8 +17,11 @@ from mellowchord import string_to_chord
 from mellowchord import string_to_keyed_chord
 from mellowchord import validate_key
 from mellowchord import validate_start
+from mellowchord import write_chord_sequence_json
+from mellowchord import read_chord_sequence_json
 import musthe
 import pytest
+from tempfile import mkstemp
 
 
 def test_validate_key():
@@ -177,3 +180,14 @@ def test_keyed_chord_encoder_with_octave_adjustment():
     assert loaded_seq[0] == kc1
     assert loaded_seq[1] == kc4
     assert loaded_seq[2] == kc5
+
+
+def test_json_write_read():
+    fd, temp_file_path = mkstemp()
+    kc1 = KeyedChord('D', Chord(1, 'maj'))
+    kc4 = KeyedChord('D', Chord(4, 'maj'))
+    kc5 = KeyedChord('D', Chord(5, 'maj'))
+    write_chord_sequence_json(temp_file_path, 'D', [kc1, kc4, kc5])
+    key_out, seq_out = read_chord_sequence_json(temp_file_path)
+    assert key_out == 'D'
+    assert seq_out == [kc1, kc4, kc5]
