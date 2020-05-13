@@ -29,7 +29,7 @@ def main():
     parser = ArgumentParser(default_config_files=[config_file_path],
                             description='Tool for generating chord sequences and melodies as MIDI files.')
     parser.add_argument('-w', '--workingdir',
-                        type=str, help='Directory to write MIDI files', default=os.getcwd())
+                        type=str, help='Directory to write MIDI or JSON files', default=os.getcwd())
     parser.add_argument('-p', '--program',
                         type=int, help='MIDI program value', default=0)
     parser.add_argument('-a', '--autoplay',
@@ -52,7 +52,7 @@ def main():
         if args.command in ('chordgen', 'c'):
             chordgen(args.key, args.start, args.num, args.workingdir, args.program, args.autoplay)
         elif args.command in ('melodygen', 'm'):
-            melodygen(args.chord_sequence)
+            melodygen(args.chord_sequence, args.workingdir, args.program, args.autoplay)
     except MellowchordError as e:
         print(e)
 
@@ -110,6 +110,7 @@ def chordgen(key, start, num, workingdir, program, autoplay):
         midi_file_path = os.path.join(workingdir, midi_filename)
         midi_file = write_midi_file(seq, midi_file_path, program)
         json_filename = seq_name + '.json'
+        json_file_path = os.path.join(workingdir, json_filename)
         if autoplay:
             midi_file.play(raise_exceptions=True)
         while True:
@@ -142,13 +143,13 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 midi_file.write()
                 print(f'Saved {midi_filename} to disk')
             elif cmd == 'j':
-                write_chord_sequence_json(json_filename, key, seq)
+                write_chord_sequence_json(json_file_path, key, seq)
                 print(f'Saved {json_filename} to disk')
             elif cmd == 'h':
                 print('(n)ext (p)lay (i)nfo in(v)ert (o)ctave (j)son (m)idi (q)uit')
 
 
-def melodygen(chord_sequence_file):
+def melodygen(chord_sequence_file, workingdir, program, autoplay):
     key, seq = read_chord_sequence_json(chord_sequence_file)
     print_chord_sequence(key, seq)
     melody_gen = MelodyGenerator(key, seq)
