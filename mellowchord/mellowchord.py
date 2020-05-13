@@ -154,21 +154,26 @@ class KeyedChord(musthe.Chord):
 
 
 class KeyedChordEncoder(json.JSONEncoder):
-    def default(self, o):
-        ret_dict = {}
-        ret_dict['degree'] = o.degree
-        ret_dict['chord_type'] = o.chord_type
-        ret_dict['inversion'] = o.inversion
-        ret_dict['octave_adjustment'] = o.octave_adjustment
-        ret_dict['key'] = o.key
-        return ret_dict
+    def default(self, obj):
+        if isinstance(obj, KeyedChord):
+            ret_dict = {}
+            ret_dict['type'] = '__keyed_chord__'
+            ret_dict['degree'] = obj.degree
+            ret_dict['chord_type'] = obj.chord_type
+            ret_dict['inversion'] = obj.inversion
+            ret_dict['octave_adjustment'] = obj.octave_adjustment
+            ret_dict['key'] = obj.key
+            return ret_dict
+        return json.JSONEncoder.default(self, obj)
 
 
 def keyed_chord_decoder(json_object):
-    return KeyedChord(json_object['key'], Chord(json_object['degree'],
-                                                json_object['chord_type'],
-                                                json_object['inversion'],
-                                                json_object['octave_adjustment']))
+    if 'type' in json_object and json_object['type'] == '__keyed_chord__':
+        return KeyedChord(json_object['key'], Chord(json_object['degree'],
+                                                    json_object['chord_type'],
+                                                    json_object['inversion'],
+                                                    json_object['octave_adjustment']))
+    return json_object
 
 
 class MidiFile(object):
@@ -566,3 +571,15 @@ class ChordMap(nx.DiGraph):
                 next_chord_name = str(next_keyed_chord)
                 yield from self.gen_sequence(next_chord_name, num_chords, current_sequence)
         current_sequence.pop()
+
+
+def write_chord_sequence_json(json_filename, key, chord_sequence):
+    output_dict = {'key': key, 'seq': chord_sequence}
+    with open(json_filename, 'w') as f:
+        json.dump(output_dict, f, cls=KeyedChordEncoder)
+
+
+def read_chord_sequence_json(json_filename):
+    with open(json_filename, 'r') as f:
+        input_dict = json.load(f, object_hook=keyed_chord_decoder)
+    return (input_dict['key'], input_dict['seq'])
