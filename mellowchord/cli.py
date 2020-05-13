@@ -1,9 +1,6 @@
 from configargparse import ArgumentParser
-import json
 from mellowchord import apply_inversion
 from mellowchord import ChordMap
-from mellowchord import KeyedChordEncoder
-from mellowchord import keyed_chord_decoder
 from mellowchord import make_file_name_from_chord_sequence
 from mellowchord import MellowchordError
 from mellowchord import MelodyGenerator
@@ -72,6 +69,7 @@ def get_command(prompt, valid_cmds=None):
             printed_commands = valid_cmds + ['q']
             print(f'Valid responses are {printed_commands}')
             continue
+
 
 def print_chord_sequence(key, seq):
     print(f'key = {key}')
