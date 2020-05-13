@@ -36,4 +36,5 @@ from .mellowchord import InvalidArgumentError  # noqa: F401
 from .mellowchord import MellowchordError  # noqa: F401
 from .mellowchord import write_chord_sequence_json  # noqa: F401
 from .mellowchord import read_chord_sequence_json  # noqa: F401
+from .mellowchord import MelodyGenerator  # noqa: F401
 from .cli import main  # noqa: F401
