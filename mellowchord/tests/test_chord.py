@@ -103,5 +103,4 @@ def test_keyed_chord_midi():
     # Assert that there's only one ALL_SOUNDS_OFF at the end
     mido_file = mido.MidiFile('test.mid')
     assert mido_file.tracks[0][-1] == mido.MetaMessage('end_of_track')
-    assert mido_file.tracks[0][-2] == MidiFile.ALL_SOUNDS_OFF
-    assert mido_file.tracks[0][-3] != MidiFile.ALL_SOUNDS_OFF
+    assert mido_file.tracks[0][-2] != MidiFile.ALL_SOUNDS_OFF

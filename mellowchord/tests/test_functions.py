@@ -11,6 +11,7 @@ from mellowchord import KeyedChordEncoder
 from mellowchord import keyed_chord_decoder
 from mellowchord import MellowchordError
 from mellowchord import make_file_name_from_chord_sequence
+from mellowchord import make_file_name_from_melody
 from mellowchord import raise_or_lower_an_octave
 from mellowchord import scale_from_key_string
 from mellowchord import string_to_chord
@@ -48,6 +49,11 @@ def test_make_file_name_from_chord_sequence():
     kc4 = KeyedChord('C', Chord(4, 'maj'))
     kc5 = KeyedChord('C', Chord(5, 'maj'))
     assert make_file_name_from_chord_sequence([kc1, kc4, kc5]) == 'Cmaj_Fmaj_Gmaj'
+
+
+def test_make_file_name_from_melody():
+    notes = [musthe.Note('A'), musthe.Note('B'), musthe.Note('C')]
+    assert make_file_name_from_melody(notes) == 'A_B_C'
 
 
 def test_split_bass():
@@ -107,24 +113,30 @@ def test_string_to_keyed_chord():
     for note in musthe.Note.all():
         key = str(note)
         scale = musthe.Scale(key, 'major')
-        assert string_to_keyed_chord(f'{scale[0]}maj', key) == KeyedChord(key, IM)
-        assert string_to_keyed_chord(f'{scale[0]}maj/{scale[2]}', key) == KeyedChord(key, IM_3)
-        assert string_to_keyed_chord(f'{scale[0]}maj/{scale[4]}', key) == KeyedChord(key, IM_5)
-        assert string_to_keyed_chord(f'{scale[1]}min', key) == KeyedChord(key, iim)
-        assert string_to_keyed_chord(f'{scale[2]}min', key) == KeyedChord(key, iiim)
-        assert string_to_keyed_chord(f'{scale[3]}maj', key) == KeyedChord(key, IVM)
-        assert string_to_keyed_chord(f'{scale[3]}maj/{scale[0]}', key) == KeyedChord(key, IVM_1)
-        assert string_to_keyed_chord(f'{scale[4]}maj', key) == KeyedChord(key, VM)
-        assert string_to_keyed_chord(f'{scale[4]}maj/{scale[1]}', key) == KeyedChord(key, VM_2)
+        assert string_to_keyed_chord(f'{scale[0]}maj', key, 0) == KeyedChord(key, IM)
+        assert string_to_keyed_chord(f'{scale[0]}maj/{scale[2]}', key, 0) == KeyedChord(key, IM_3)
+        assert string_to_keyed_chord(f'{scale[0]}maj/{scale[4]}', key, 0) == KeyedChord(key, IM_5)
+        assert string_to_keyed_chord(f'{scale[1]}min', key, 0) == KeyedChord(key, iim)
+        assert string_to_keyed_chord(f'{scale[2]}min', key, 0) == KeyedChord(key, iiim)
+        assert string_to_keyed_chord(f'{scale[3]}maj', key, 0) == KeyedChord(key, IVM)
+        assert string_to_keyed_chord(f'{scale[3]}maj/{scale[0]}', key, 0) == KeyedChord(key, IVM_1)
+        assert string_to_keyed_chord(f'{scale[4]}maj', key, 0) == KeyedChord(key, VM)
+        assert string_to_keyed_chord(f'{scale[4]}maj/{scale[1]}', key, 0) == KeyedChord(key, VM_2)
 
         with pytest.raises(ChordParseError):
-            string_to_keyed_chord('Hmaj', key)
+            string_to_keyed_chord('Hmaj', key, 0)
         with pytest.raises(ChordParseError):
-            string_to_keyed_chord('Afoo', key)
+            string_to_keyed_chord('Afoo', key, 0)
         with pytest.raises(ChordParseError):
-            string_to_keyed_chord('Amin/foo', key)
+            string_to_keyed_chord('Amin/foo', key, 0)
         with pytest.raises(ChordParseError):
-            string_to_keyed_chord('Amin/8', key)
+            string_to_keyed_chord('Amin/8', key, 0)
+
+        kc_high = string_to_keyed_chord('Cmaj', 'C', 1)
+        kc_mid = string_to_keyed_chord('Cmaj', 'C', 0)
+        kc_low = string_to_keyed_chord('Cmaj', 'C', -1)
+        assert kc_low.octave_adjustment + 1 == kc_mid.octave_adjustment
+        assert kc_mid.octave_adjustment + 1 == kc_high.octave_adjustment
 
 
 def test_apply_inversion():
@@ -139,10 +151,10 @@ def test_apply_inversion():
 
 def test_raise_or_lower_an_octave():
     kc = KeyedChord('C', Chord(1, 'maj'))
-    kc_up = raise_or_lower_an_octave(kc, True)
+    kc_up = raise_or_lower_an_octave(kc, 1)
     for track in ('root', 'third', 'fifth'):
         assert kc.adjusted_notes[track].octave + 1 == kc_up.adjusted_notes[track].octave
-    kc_down = raise_or_lower_an_octave(kc, False)
+    kc_down = raise_or_lower_an_octave(kc, -1)
     for track in ('root', 'third', 'fifth'):
         assert kc.adjusted_notes[track].octave - 1 == kc_down.adjusted_notes[track].octave
 
@@ -172,7 +184,7 @@ def test_keyed_chord_encoder():
 
 def test_keyed_chord_encoder_with_octave_adjustment():
     kc1 = KeyedChord('C', Chord(1, 'maj'))
-    kc1 = raise_or_lower_an_octave(kc1, up=True)
+    kc1 = raise_or_lower_an_octave(kc1, 1)
     kc4 = KeyedChord('C', Chord(4, 'maj'))
     kc5 = KeyedChord('C', Chord(5, 'maj'))
     json_string = json.dumps([kc1, kc4, kc5], cls=KeyedChordEncoder)

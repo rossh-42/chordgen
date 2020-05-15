@@ -79,11 +79,10 @@ def apply_inversion(keyed_chord, inversion):
     return KeyedChord(keyed_chord.key, inverted_chord)
 
 
-def raise_or_lower_an_octave(keyed_chord, up):
-    if up:
-        new_octave_adj = keyed_chord.octave_adjustment + 1
-    else:
-        new_octave_adj = keyed_chord.octave_adjustment - 1
+def raise_or_lower_an_octave(keyed_chord, octave_adjustment):
+    if octave_adjustment == 0:
+        return keyed_chord
+    new_octave_adj = keyed_chord.octave_adjustment + octave_adjustment
     adjusted_chord = Chord(keyed_chord.degree, keyed_chord.chord_type, keyed_chord.inversion, new_octave_adj)
     return KeyedChord(keyed_chord.key, adjusted_chord)
 
@@ -184,7 +183,7 @@ class MidiFile(object):
     def __init__(self, filename, program=0):
         self._filename = filename
         self._tracks = {}
-        for track_name in ('root', 'third', 'fifth', 'seventh'):
+        for track_name in ('root', 'third', 'fifth', 'seventh', 'melody'):
             track = mido.MidiTrack()
             track.name = track_name
             self._tracks[track_name] = track
@@ -201,16 +200,23 @@ class MidiFile(object):
                                                      velocity=velocity,
                                                      time=on_time))
 
-    def add_chord(self, keyed_chord, velocity=64, time=1000):
-        # bass_note = keyed_chord.root_note.to_octave(2)
-        # self._add_track_note('bass', bass_note.midi_note(), velocity, time, 5)
+    def add_chord_with_melody(self,
+                              keyed_chord,
+                              melody_note,
+                              chord_velocity=48,
+                              chord_time=1000,
+                              melody_velocity=64,
+                              melody_time=1000):
+        self._add_track_note('melody', melody_note.midi_note(), melody_velocity, melody_time, 5)
+        self.add_chord(keyed_chord, chord_velocity, chord_time)
 
+    def add_chord(self, keyed_chord, velocity=64, time=1000):
         notes_dict = keyed_chord.adjusted_notes
         for track_name in ['root', 'third', 'fifth']:
             self._add_track_note(track_name, notes_dict[track_name].midi_note(), velocity, time, 5)
 
         if len(keyed_chord.notes) >= 4:
-            self._add_track_note('seventh', keyed_chord.notes[3].midi_note(), velocity, time, 5)
+            self._add_track_note('seventh', keyed_chord.adjusted_notes['seventh'].midi_note(), velocity, time, 5)
         else:
             self._tracks['seventh'].append(mido.Message('note_off',
                                                         note=0,
@@ -220,8 +226,7 @@ class MidiFile(object):
     def _make_midi_file(self):
         midi_file = mido.MidiFile()
         tracks_copy = copy.copy(self._tracks)
-        for track_name in ('root', 'third', 'fifth', 'seventh'):
-            self._tracks[track_name].append(MidiFile.ALL_SOUNDS_OFF)
+        for track_name in ('root', 'third', 'fifth', 'seventh', 'melody'):
             midi_file.tracks.append(tracks_copy[track_name])
         return midi_file
 
@@ -238,6 +243,17 @@ class MidiFile(object):
         except IOError as e:
             if raise_exceptions:
                 raise MellowchordError(str(e))
+
+
+def write_midi_file(seq, melody, midi_file_path, program):
+    midi_file = MidiFile(midi_file_path, program)
+    if melody:
+        for index, keyed_chord in enumerate(seq):
+            midi_file.add_chord_with_melody(keyed_chord, melody[index])
+    else:
+        for keyed_chord in seq:
+            midi_file.add_chord(keyed_chord)
+    return midi_file
 
 
 def chords_types_are_equal(chord_type_1, chord_type_2):
@@ -309,9 +325,10 @@ def string_to_chord(chord_string, key=None):
     raise ChordParseError(f'Can\'t parse chord string "{chord_string}"')
 
 
-def string_to_keyed_chord(chord_string, key):
+def string_to_keyed_chord(chord_string, key, octave_adjustment):
     c = string_to_chord(chord_string, key)
-    return KeyedChord(key, c)
+    kc = KeyedChord(key, c)
+    return raise_or_lower_an_octave(kc, octave_adjustment)
 
 
 def make_file_name_from_chord_sequence(seq):
@@ -322,6 +339,15 @@ def make_file_name_from_chord_sequence(seq):
         if len(name) != 0:
             name += '_'
         name += chord_string
+    return name
+
+
+def make_file_name_from_melody(notes):
+    name = ''
+    for note in notes:
+        if len(name) != 0:
+            name += '_'
+        name += str(note)
     return name
 
 
@@ -414,8 +440,9 @@ IIIM = Chord(3, 'maj')
 
 
 class ChordMap(nx.DiGraph):
-    def __init__(self, key=None):
+    def __init__(self, key=None, octave_adjustment=0):
         self.key = key
+        self.octave_adjustment = octave_adjustment
         minor = False
         chord_types = ['dummy', 'maj', 'min', 'min', 'maj', 'maj', 'min', 'min']
         if self.key:
@@ -565,7 +592,7 @@ class ChordMap(nx.DiGraph):
         if len(current_sequence) == num_chords:
             if tuple(current_sequence) not in already_yielded:
                 already_yielded.add(tuple(current_sequence))
-                yield [string_to_keyed_chord(c, self.key) for c in current_sequence]
+                yield [string_to_keyed_chord(c, self.key, self.octave_adjustment) for c in current_sequence]
         else:
             next_keyed_chords = self.next_chords(chord_string, all_variants=True)
             for next_keyed_chord in next_keyed_chords:
