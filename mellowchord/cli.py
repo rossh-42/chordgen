@@ -2,14 +2,15 @@ from configargparse import ArgumentParser
 from mellowchord import apply_inversion
 from mellowchord import ChordMap
 from mellowchord import make_file_name_from_chord_sequence
+from mellowchord import make_file_name_from_melody
 from mellowchord import MellowchordError
 from mellowchord import MelodyGenerator
-from mellowchord import MidiFile
 from mellowchord import raise_or_lower_an_octave
 from mellowchord import validate_key
 from mellowchord import validate_start
 from mellowchord import write_chord_sequence_json
 from mellowchord import read_chord_sequence_json
+from mellowchord import write_midi_file
 import os
 from pathlib import Path
 import readchar
@@ -34,9 +35,9 @@ def main():
     subparsers = parser.add_subparsers(dest='command')
 
     chordgen_parser = subparsers.add_parser('chordgen', aliases=['c'], help='Generate a series of chord sequences')
-    chordgen_parser.add_argument('key', type=str, help='major or natural minor key to generate chords from')
-    chordgen_parser.add_argument('start', type=str, help='name of the chord to start from')
-    chordgen_parser.add_argument('num', type=int, help='number of chords in each sequence')
+    chordgen_parser.add_argument('key', type=str, help='Major or natural minor key to generate chords from')
+    chordgen_parser.add_argument('start', type=str, help='Name of the chord to start from')
+    chordgen_parser.add_argument('num', type=int, help='Number of chords in each sequence')
 
     melodygen_parser = subparsers.add_parser('melodygen',
                                              aliases=['m'],
@@ -90,23 +91,16 @@ def print_melody(notes):
     sys.stdout.write('\n')
 
 
-def write_midi_file(seq, midi_file_path, program):
-    midi_file = MidiFile(midi_file_path, program)
-    for keyed_chord in seq:
-        midi_file.add_chord(keyed_chord)
-    return midi_file
-
-
 def chordgen(key, start, num, workingdir, program, autoplay):
     validate_key(key)
-    cm = ChordMap(key)
+    cm = ChordMap(key, octave_adjustment=-1)
     validate_start(start, cm)
     for seq in cm.gen_sequence(start, num):
         seq_name = make_file_name_from_chord_sequence(seq)
         print(seq_name)
         midi_filename = seq_name + '.mid'
         midi_file_path = os.path.join(workingdir, midi_filename)
-        midi_file = write_midi_file(seq, midi_file_path, program)
+        midi_file = write_midi_file(seq, None, midi_file_path, program)
         json_filename = seq_name + '.json'
         json_file_path = os.path.join(workingdir, json_filename)
         if autoplay:
@@ -121,17 +115,22 @@ def chordgen(key, start, num, workingdir, program, autoplay):
             elif cmd == 'i':
                 print_chord_sequence(key, seq)
             elif cmd == 'v':
-                chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
+                chord_index = int(get_command('chord_in_sequence?>', valid_cmds=[x+1 for x in range(len(seq))])) - 1
                 inversion = int(get_command('inversion?>', valid_cmds=[0, 1, 2]))
+                if inversion == 0:
+                    continue
                 original_chord_string = str(seq[chord_index])
                 seq[chord_index] = apply_inversion(seq[chord_index], inversion)
-                midi_file = write_midi_file(seq, midi_file_path, program)
+                midi_file = write_midi_file(seq, None, midi_file_path, program)
+                seq_name = make_file_name_from_chord_sequence(seq)
+                midi_filename = seq_name + '.mid'
+                midi_file_path = os.path.join(workingdir, midi_filename)
                 print(f'converted {original_chord_string} to {seq[chord_index]}')
             elif cmd == 'o':
-                chord_index = int(get_command('chord_in_sequence?>', valid_cmds=list(range(len(seq)))))
+                chord_index = int(get_command('chord_in_sequence?>', valid_cmds=[x+1 for x in range(len(seq))])) - 1
                 up_or_down = get_command('+_or_-?>', valid_cmds=['+', '-'])
-                seq[chord_index] = raise_or_lower_an_octave(seq[chord_index], up_or_down == '+')
-                midi_file = write_midi_file(seq, midi_file_path, program)
+                seq[chord_index] = raise_or_lower_an_octave(seq[chord_index], 1 if up_or_down == '+' else 0)
+                midi_file = write_midi_file(seq, None, midi_file_path, program)
                 if up_or_down == '+':
                     verb = 'raised'
                 else:
@@ -153,15 +152,27 @@ def melodygen(chord_sequence_file, workingdir, program, autoplay):
     melody_gen = MelodyGenerator(key, seq)
     for notes in melody_gen.gen_sequence():
         print_melody(notes)
+        melody_name = make_file_name_from_melody(notes)
+        midi_filename = melody_name + '.mid'
+        midi_file_path = os.path.join(workingdir, midi_filename)
+        midi_file = write_midi_file(seq, notes, midi_file_path, program)
+        if autoplay:
+            midi_file.play(raise_exceptions=True)
         while True:
-            cmd = get_command('>', valid_cmds=['n', 'i', 'h'])
+            cmd = get_command('>', valid_cmds=['n', 'p', 'i', 'm', 'h'])
             if cmd == 'n':
                 break
+            elif cmd == 'p':
+                print(f'Playing {melody_name}')
+                midi_file.play(raise_exceptions=True)
             elif cmd == 'i':
                 print_chord_sequence(key, seq)
                 print_melody(notes)
+            elif cmd == 'm':
+                midi_file.write()
+                print(f'Saved {midi_filename} to disk')
             elif cmd == 'h':
-                print('(n)ext (i)nfo (q)uit')
+                print('(n)ext (p)lay (i)nfo (m)idi (q)uit')
 
 
 if __name__ == "__main__":
