@@ -202,12 +202,17 @@ class MidiFile(object):
 
     def add_chord_with_melody(self,
                               keyed_chord,
-                              melody_note,
+                              melody_notes,
                               chord_velocity=48,
                               chord_time=1000,
-                              melody_velocity=64,
-                              melody_time=1000):
-        self._add_track_note('melody', melody_note.midi_note(), melody_velocity, melody_time, 5)
+                              melody_velocity=64):
+        melody_note_time = chord_time // len(melody_notes)
+        last_melody_note_leftover = chord_time % len(melody_notes)
+        for index, melody_note in enumerate(melody_notes):
+            on_time = melody_note_time - 5
+            if index == len(melody_notes) - 1:
+                on_time += last_melody_note_leftover
+            self._add_track_note('melody', melody_note.midi_note(), melody_velocity, on_time, 5)
         self.add_chord(keyed_chord, chord_velocity, chord_time)
 
     def add_chord(self, keyed_chord, velocity=64, time=1000):
@@ -248,8 +253,11 @@ class MidiFile(object):
 def write_midi_file(seq, melody, midi_file_path, program):
     midi_file = MidiFile(midi_file_path, program)
     if melody:
+        notes_per_chord = len(melody) // len(seq)
         for index, keyed_chord in enumerate(seq):
-            midi_file.add_chord_with_melody(keyed_chord, melody[index])
+            note_start = index * notes_per_chord
+            note_stop = note_start + notes_per_chord
+            midi_file.add_chord_with_melody(keyed_chord, melody[note_start:note_stop])
     else:
         for keyed_chord in seq:
             midi_file.add_chord(keyed_chord)
@@ -614,11 +622,30 @@ def read_chord_sequence_json(json_filename):
 
 
 class MelodyGenerator(object):
-    def __init__(self, key, chord_sequence):
+    def __init__(self, key, chord_sequence, notes_per_chord):
         self.key = key
         self.chord_sequence = chord_sequence
+        assert notes_per_chord in [1, 2, 3, 4]
+        self.notes_per_chord = notes_per_chord
         self.scale = scale_from_key_string(key)
 
     def gen_sequence(self):
-        for notes_on_chord in itertools.product(*[chord.notes for chord in self.chord_sequence]):
-            yield notes_on_chord
+        # This is a list of lists.
+        # Each index into possible_notes corresponds to a chord.
+        # Each entry is the contained lists are possible melody notes.
+        possible_notes = []
+
+        num_chords = len(self.chord_sequence)
+        for chord_index, chord in enumerate(self.chord_sequence):
+            last_chord = chord_index == num_chords - 1
+            for melody_index in range(self.notes_per_chord):
+                very_first_note = melody_index == 0
+                last_note_before_new_chord = melody_index % self.notes_per_chord == self.notes_per_chord - 1
+                if not very_first_note and not last_chord and last_note_before_new_chord:
+                    next_chord = self.chord_sequence[chord_index + 1]
+                    possible_notes.append(chord.notes + next_chord.notes)
+                else:
+                    possible_notes.append(chord.notes)
+
+        for notes in itertools.product(*possible_notes):
+            yield notes

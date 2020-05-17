@@ -44,13 +44,15 @@ def main():
                                              help='Generate a melody to match a chord sequence')
     melodygen_parser.add_argument('chord_sequence', type=str, help='Chord sequence JSON file that was '
                                                                    'saved by chordgen')
+    melodygen_parser.add_argument('-n', '--notes_per_chord',
+                                  type=int, help='Number of notes to generate for each chord', default=1)
 
     args = parser.parse_args()
     try:
         if args.command in ('chordgen', 'c'):
             chordgen(args.key, args.start, args.num, args.workingdir, args.program, args.autoplay)
         elif args.command in ('melodygen', 'm'):
-            melodygen(args.chord_sequence, args.workingdir, args.program, args.autoplay)
+            melodygen(args.chord_sequence, args.notes_per_chord, args.workingdir, args.program, args.autoplay)
     except MellowchordError as e:
         print(e)
 
@@ -146,10 +148,10 @@ def chordgen(key, start, num, workingdir, program, autoplay):
                 print('(n)ext (p)lay (i)nfo in(v)ert (o)ctave (j)son (m)idi (q)uit')
 
 
-def melodygen(chord_sequence_file, workingdir, program, autoplay):
+def melodygen(chord_sequence_file, notes_per_chord, workingdir, program, autoplay):
     key, seq = read_chord_sequence_json(chord_sequence_file)
     print_chord_sequence(key, seq)
-    melody_gen = MelodyGenerator(key, seq)
+    melody_gen = MelodyGenerator(key, seq, notes_per_chord)
     for notes in melody_gen.gen_sequence():
         print_melody(notes)
         melody_name = make_file_name_from_melody(notes)
